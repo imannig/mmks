@@ -1,5 +1,5 @@
 {
-  "version": "1.23.0",
+  "version": "1.0.0",
   "patches": [
     {
       "name": "Alternative thumbnails",
@@ -454,6 +454,24 @@
           }
         }
       ]
+    },
+    {
+      "name": "Custom lyrics API",
+      "description": "Intercepts lyrics requests and redirects them to a custom API for timed/synced lyrics.",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "BytecodePatch"
+      ],
+      "compatiblePackages": {
+        "com.google.android.apps.youtube.music": [
+          "8.44.54",
+          "8.40.54",
+          "8.10.52",
+          "7.29.52"
+        ]
+      },
+      "options": []
     },
     {
       "name": "Custom player overlay opacity",

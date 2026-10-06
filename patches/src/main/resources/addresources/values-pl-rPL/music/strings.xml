@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Wymagane ciasteczka: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPI
   <string name="morphe_music_lyrics_saved">Zapisano</string>
   <string name="morphe_music_lyrics_word_sync_title">Podświetlaj zsynchronizowane słowa lub sylaby</string>
   <string name="morphe_music_lyrics_word_sync_summary">Nadaje priorytet tekstom synchronizowanym słowo po słowie, o ile są dostępne. Gdy tekst zawiera znaczniki czasu, podświetla każde słowo lub sylabę w rytm muzyki</string>
-  <string name="morphe_music_lyrics_hide_played_title">Ukryj odtworzony tekst</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Ukrywa linijki tekstu znajdujące się powyżej tej aktualnie odtwarzanej</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Ukryj nieodtworzony tekst</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Ukrywa linijki tekstu znajdujące się poniżej tej aktualnie odtwarzanej</string>
   <string name="morphe_music_lyrics_mediasession_title">Pokaż teksty MediaSession na ekranie blokady</string>
   <string name="morphe_music_lyrics_miniplayer_title">Pokaż teksty w miniodtwarzaczu</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Kolejność wyświetlania wykonawcy i tytułu</string>
@@ -464,8 +460,6 @@ Wymagane ciasteczka: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPI
   <string name="morphe_music_lyrics_about_summary">"Teksty są wyszukiwane po tytule i wykonawcy, więc przy nietypowych metadanych aplikacja może nic nie znaleźć lub pobrać złą wersję. Możesz użyć przycisku odświeżania, aby ręcznie zmienić wersję. Gdy brak tekstów zewnętrznych, wyświetlane są te wbudowane lub osadzone. Dostawcy z gwiazdką (*) wymagają tokena. Wszyscy włączeni dostawcy nie zawsze są odpytywani w ustalonej kolejności, a ostateczny wynik zależy od szybkości ich odpowiedzi"</string>
   <string name="morphe_music_lyrics_hide_info_title">Ukryj informacje o twórcach</string>
   <string name="morphe_music_lyrics_hide_info_summary">Ukrywa informacje o twórcach wyświetlane pod tekstem</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Zamień miejscami tłumaczenie i romanizację</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Włączone: romanizacja znajduje się pod tekstem, a tłumaczenie nad nim. Wyłączone: romanizacja nad tekstem, a tłumaczenie pod nim</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Tłumaczenie zgodne z OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Użyj niestandardowego API zgodnego z OpenAI do tłumaczenia i romanizacji zamiast Tłumacza Google</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Ustawienia tłumaczenia AI</string>

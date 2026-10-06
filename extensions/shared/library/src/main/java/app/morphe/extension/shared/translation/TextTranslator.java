@@ -40,7 +40,7 @@ public final class TextTranslator {
      * {@code sl=auto} lets Google detect the script to romanize.
      */
     private static final String GOOGLE_ROMANIZE_URL =
-            "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&dt=t&dt=rm&tl=en";
+            "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&dt=rm&tl=en";
 
     private static final int CONNECT_TIMEOUT_MILLISECONDS = 10_000;
     private static final int READ_TIMEOUT_MILLISECONDS = 15_000;
@@ -140,13 +140,19 @@ public final class TextTranslator {
                                              boolean romanize) throws Exception {
         Utils.verifyOffMainThread();
 
+        final String delimiter = romanize ? " | " : "\n";
         StringBuilder joined = new StringBuilder(100 * lines.size());
         for (String line : lines) {
             //noinspection SizeReplaceableByIsEmpty
             if (joined.length() > 0) {
-                joined.append('\n');
+                joined.append(delimiter);
             }
-            joined.append(line);
+            if (romanize) {
+                // Prevent inner pipe characters from conflicting with the delimiter
+                joined.append(line.replace('|', '/').trim());
+            } else {
+                joined.append(line);
+            }
         }
 
         String body = "q=" + URLEncoder.encode(joined.toString(), "UTF-8");
@@ -175,28 +181,49 @@ public final class TextTranslator {
 
                 final int code = connection.getResponseCode();
                 if (code == 200) {
-                    // Response: [[["translated","original",null,"romanized",...],...],...]
-                    // The endpoint splits into sentences; concatenating restores the lines that were sent.
                     JSONArray sentences = new JSONArray(Requester.parseString(connection)).getJSONArray(0);
-                    StringBuilder result = new StringBuilder();
-                    for (int i = 0, length = sentences.length(); i < length; i++) {
-                        JSONArray sentence = sentences.getJSONArray(i);
-                        if (romanize) {
-                            // The romanization lives at index 3, falling back to index 2.
+                    if (romanize) {
+                        StringBuilder fullRomanized = new StringBuilder();
+                        for (int i = 0, length = sentences.length(); i < length; i++) {
+                            JSONArray sentence = sentences.optJSONArray(i);
+                            if (sentence == null) continue;
                             String romanized = sentence.optString(3);
                             if (romanized.isEmpty() || "null".equals(romanized)) {
                                 romanized = sentence.optString(2);
                             }
-                            if ("null".equals(romanized)) {
-                                romanized = "";
+                            if (romanized.isEmpty() || "null".equals(romanized)) {
+                                String opt0 = sentence.optString(0);
+                                if (!opt0.isEmpty() && !"null".equals(opt0) && isPurelyLatin(opt0)) {
+                                    romanized = opt0;
+                                } else {
+                                    romanized = "";
+                                }
                             }
-                            result.append(romanized);
-                        } else {
+                            if (!romanized.isEmpty() && !"null".equals(romanized)) {
+                                fullRomanized.append(romanized);
+                            }
+                        }
+
+                        // Clean spaces around delimiters and restore per-line tokens
+                        String cleaned = fullRomanized.toString().replaceAll("\\s*\\|\\s*", "|");
+                        String[] tokens = cleaned.split("\\|", -1);
+                        List<String> result = new ArrayList<>(lines.size());
+                        for (int i = 0; i < lines.size(); i++) {
+                            if (i < tokens.length) {
+                                result.add(tokens[i].trim());
+                            } else {
+                                result.add("");
+                            }
+                        }
+                        return result;
+                    } else {
+                        StringBuilder result = new StringBuilder();
+                        for (int i = 0, length = sentences.length(); i < length; i++) {
+                            JSONArray sentence = sentences.getJSONArray(i);
                             result.append(sentence.getString(0));
                         }
+                        return Arrays.asList(result.toString().split("\n", -1));
                     }
-
-                    return Arrays.asList(result.toString().split("\n", -1));
                 }
 
                 // A non-2xx response: read the body through the error stream, because
@@ -229,6 +256,26 @@ public final class TextTranslator {
 
     private static boolean isRetryable(int code) {
         return code == 403 || code == 404 || code == 429 || (code >= 500 && code <= 599);
+    }
+
+    private static boolean isPurelyLatin(String s) {
+        if (s == null || s.isEmpty()) return true;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            Character.UnicodeBlock block = Character.UnicodeBlock.of(c);
+            if (block == Character.UnicodeBlock.BASIC_LATIN
+                    || block == Character.UnicodeBlock.LATIN_1_SUPPLEMENT
+                    || block == Character.UnicodeBlock.LATIN_EXTENDED_A
+                    || block == Character.UnicodeBlock.LATIN_EXTENDED_B
+                    || block == Character.UnicodeBlock.LATIN_EXTENDED_ADDITIONAL
+                    || block == Character.UnicodeBlock.GENERAL_PUNCTUATION
+                    || Character.isWhitespace(c)
+                    || Character.isDigit(c)) {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     private static void sleepQuietly(long millis) {

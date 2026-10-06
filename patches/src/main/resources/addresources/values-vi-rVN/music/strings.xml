@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -417,10 +417,6 @@ Chỉ thêm token khi bạn muốn dùng tài khoản của riêng mình. Token 
   <string name="morphe_music_lyrics_saved">Đã lưu</string>
   <string name="morphe_music_lyrics_word_sync_title">Đánh dấu các từ hoặc âm tiết đồng bộ</string>
   <string name="morphe_music_lyrics_word_sync_summary">Ưu tiên lời bài hát từng từ khi có sẵn. Khi lời bài hát có thời gian cho từng từ, đánh dấu từng từ hoặc âm tiết theo nhạc</string>
-  <string name="morphe_music_lyrics_hide_played_title">Ẩn lời bài hát đã phát</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Ẩn các dòng lời bài hát phía trên dòng đang phát</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Ẩn lời bài hát chưa phát</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Ẩn các dòng lời bài hát phía dưới dòng đang phát</string>
   <string name="morphe_music_lyrics_mediasession_title">Hiển thị Lời bài hát MediaSession trên màn hình khóa</string>
   <string name="morphe_music_lyrics_miniplayer_title">Hiển thị Lời bài hát trong Miniplayer</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Thứ tự hiển thị Nghệ sĩ và Tên bài hát</string>
@@ -455,8 +451,6 @@ Chỉ thêm token khi bạn muốn dùng tài khoản của riêng mình. Token 
   <string name="morphe_music_lyrics_about_summary">"Lời bài hát được tra cứu theo tên bài hát và nghệ sĩ, vì vậy một bài hát có siêu dữ liệu bất thường có thể không tìm thấy gì hoặc tìm thấy phiên bản sai. Bạn cũng có thể thử nút làm mới để chuyển đổi phiên bản theo cách thủ công. Khi không tìm thấy lời bài hát của bên thứ ba, lời bài hát tích hợp hoặc nhúng sẽ được hiển thị thay thế. Các nhà cung cấp được đánh dấu * yêu cầu token để kích hoạt. Không phải tất cả các nhà cung cấp đã kích hoạt đều được yêu cầu theo thứ tự của bạn, mà chúng phản hồi dựa trên tốc độ của chúng"</string>
   <string name="morphe_music_lyrics_hide_info_title">Ẩn dòng ghi công</string>
   <string name="morphe_music_lyrics_hide_info_summary">Ẩn dòng ghi công hiển thị bên dưới lời bài hát</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Hoán đổi bản dịch và chuyển tự</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">BẬT đặt chuyển tự bên dưới lời bài hát và bản dịch bên trên; TẮT giữ chuyển tự bên trên và bản dịch bên dưới</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Dịch tương thích OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Sử dụng API tương thích OpenAI tùy chỉnh để dịch và phiên âm thay vì Google Dịch</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Cài đặt dịch AI</string>

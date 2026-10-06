@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ YouTube Music 8.x - क्रॉसफ़ेड केवल 9.x और उस�
   <string name="morphe_music_lyrics_saved">सहेजा गया</string>
   <string name="morphe_music_lyrics_word_sync_title">सिंक किए गए शब्दों या अक्षरों को हाइलाइट करें</string>
   <string name="morphe_music_lyrics_word_sync_summary">जब उपलब्ध हों तो शब्द-दर-शब्द गीतों को प्राथमिकता दें। जब गीतों में शब्द टाइमिंग होती है, तो संगीत के साथ समय पर प्रत्येक शब्द या अक्षर को हाइलाइट करता है</string>
-  <string name="morphe_music_lyrics_hide_played_title">बजाए गए गीत छिपाएँ</string>
-  <string name="morphe_music_lyrics_hide_played_summary">वर्तमान में चल रही पंक्ति के ऊपर की गीत पंक्तियों को छिपाएँ</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">नहीं बजाए गए गीत छिपाएँ</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">वर्तमान में चल रही पंक्ति के नीचे की गीत पंक्तियाँ छिपाएँ</string>
   <string name="morphe_music_lyrics_mediasession_title">लॉक स्क्रीन पर MediaSession गीत दिखाएँ</string>
   <string name="morphe_music_lyrics_miniplayer_title">मिनीप्लेयर गीत दिखाएँ</string>
   <string name="morphe_music_lyrics_display_artist_first_title">कलाकार और शीर्षक दिखाने का क्रम</string>
@@ -459,8 +455,6 @@ YouTube Music 8.x - क्रॉसफ़ेड केवल 9.x और उस�
   <string name="morphe_music_lyrics_about_summary">"गीतों को ट्रैक शीर्षक और कलाकार के आधार पर खोजा जाता है, इसलिए असामान्य मेटाडेटा वाला ट्रैक कुछ नहीं ढूँढ सकता है, या गलत संस्करण ढूँढ सकता है। आप मैन्युअल रूप से संस्करण बदलने के लिए रीफ़्रेश बटन भी आज़मा सकते हैं। जब कोई तृतीय-पक्ष गीत नहीं मिलते हैं, तो बिल्ट-इन या एम्बेडेड गीत दिखाए जाते हैं। * से चिह्नित प्रदाताओं को सक्षम करने के लिए टोकन की आवश्यकता होती है। सभी सक्षम प्रदाताओं से हमेशा आपके क्रम में अनुरोध नहीं किया जाता है, बल्कि वे अपनी गति के आधार पर प्रतिक्रिया देते हैं"</string>
   <string name="morphe_music_lyrics_hide_info_title">क्रेडिट लाइन छिपाएँ</string>
   <string name="morphe_music_lyrics_hide_info_summary">गीतों के नीचे दिखाई जाने वाली क्रेडिट लाइन छिपाएँ</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">अनुवाद और रोमनीकरण आपस में बदलें</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">चालू होने पर रोमनीकरण गीतों के नीचे और अनुवाद ऊपर रखता है; बंद होने पर रोमनीकरण ऊपर और अनुवाद नीचे रहता है</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-संगत अनुवाद</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">अनुवाद और रोमनकरण के लिए Google Translate के बजाय कस्टम OpenAI-संगत API का उपयोग करें</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI अनुवाद सेटिंग्स</string>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Fon səsləndirmə zamanı analiz sinxronlaşdırılmasına əmin olmaq üçün 
   <string name="morphe_music_lyrics_saved">Saxlanıldı</string>
   <string name="morphe_music_lyrics_word_sync_title">Sinxronlaşdırılmış sözləri və ya hecaları vurğula</string>
   <string name="morphe_music_lyrics_word_sync_summary">Mümkün olduqda sözbəsöz sözlərə üstünlük verir. Sözlərdə zamanlama olduqda, musiqi ilə eyni vaxtda hər bir sözü və ya hecanı vurğulayır</string>
-  <string name="morphe_music_lyrics_hide_played_title">Oxudulan sözləri gizlət</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Mövcud oxunan sətirdən yuxarıdakı söz sətirlərini gizlət</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Oxudulmamış sözləri gizlət</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Mövcud oxunan sətirdən aşağıdakı söz sətirlərini gizlət</string>
   <string name="morphe_music_lyrics_mediasession_title">Kilid ekranında MediaSession Sözlərini göstər</string>
   <string name="morphe_music_lyrics_miniplayer_title">Kiçik Səsləndirici Sözlərini Göstər</string>
   <string name="morphe_music_lyrics_display_artist_first_title">İfaçı və Başlığın göstərilmə sırası</string>
@@ -462,8 +458,6 @@ Fon səsləndirmə zamanı analiz sinxronlaşdırılmasına əmin olmaq üçün 
   <string name="morphe_music_lyrics_about_summary">"Mahnı sözləri trek adı və ifaçıya görə axtarılır, buna görə də qeyri-adi metaməlumatı olan trek heç nə tapmaya və ya yanlış versiyanı tapa bilər. Versiyaları əllə dəyişmək üçün yeniləmə düyməsini də sınaya bilərsiniz. Üçüncü tərəf mahnı sözləri tapılmadıqda, əvəzində daxili və ya yerləşdirilmiş sözlər göstərilir. * ilə qeyd olunan təminatçıları aktivləşdirmək üçün token tələb olunur. Aktiv edilmiş bütün təminatçılar həmişə sizin ardıcıllığınızla sorğulanmır, cavab sürətlərinə əsasən cavab verirlər"</string>
   <string name="morphe_music_lyrics_hide_info_title">Müəllif sətrini gizlət</string>
   <string name="morphe_music_lyrics_hide_info_summary">Mahnı sözlərinin altında göstərilən müəllif sətrini gizlət</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Tərcümə və transkripsiyanın yerini dəyiş</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">AÇIQ olduqda transkripsiya sözlərin altında və tərcümə yuxarıda göstərilir; QAPALI olduqda transkripsiya üstdə, tərcümə isə altda qalır</string>
   <!-- misc.spoof.appversion.spoofAppVersionPatch -->
   <string name="morphe_music_spoof_app_version_target_entry_8_23_51">8.23.51 - Qalın simvolları qeyri-aktiv et</string>
   <string name="morphe_music_spoof_app_version_target_entry_9_13_51">9.13.51 - Oynadıcının Növbəti, Mahnı sözləri və Əlaqəli panellərini bərpa et</string>

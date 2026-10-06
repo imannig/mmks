@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ YouTube Music 8.x —— 交叉淡入仅在 9.x 及更高版本上运行"</strin
   <string name="morphe_music_lyrics_saved">已保存</string>
   <string name="morphe_music_lyrics_word_sync_title">高亮显示同步的单词或音节</string>
   <string name="morphe_music_lyrics_word_sync_summary">下载歌词</string>
-  <string name="morphe_music_lyrics_hide_played_title">下载歌词时自动保存</string>
-  <string name="morphe_music_lyrics_hide_played_summary">自动下载歌词</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">打开 / 关闭</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">仅 Wi-Fi</string>
   <string name="morphe_music_lyrics_mediasession_title">始终</string>
   <string name="morphe_music_lyrics_miniplayer_title">从不</string>
   <string name="morphe_music_lyrics_display_artist_first_title">询问式</string>
@@ -464,8 +460,6 @@ YouTube Music 8.x —— 交叉淡入仅在 9.x 及更高版本上运行"</strin
   <string name="morphe_music_lyrics_about_summary">"歌词是根据曲目标题和艺人查找的，因此元数据不常见的曲目可能找不到歌词，或找到错误的版本。你也可以尝试使用刷新按钮来手动切换版本。当找不到第三方歌词时，会显示内置或嵌入的歌词。标有 * 的提供方需要 token 才能启用。并非所有已启用的提供方都会按照你的顺序被请求，而是根据它们的速度进行响应"</string>
   <string name="morphe_music_lyrics_hide_info_title">隐藏署名行</string>
   <string name="morphe_music_lyrics_hide_info_summary">隐藏显示在歌词下方的署名行</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">交换翻译和罗马字</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">开启时，罗马字在歌词下方、翻译在歌词上方；关闭时，罗马字在歌词上方、翻译在歌词下方</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI 兼容翻译</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">使用自定义的 OpenAI 兼容 API 进行翻译和音译，而不是 Google 翻译</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI 翻译设置</string>

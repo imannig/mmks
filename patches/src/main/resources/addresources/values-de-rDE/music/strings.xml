@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Erforderliche Cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_saved">Gespeichert</string>
   <string name="morphe_music_lyrics_word_sync_title">Hebe synchronisierte Wörter oder Silben hervor.</string>
   <string name="morphe_music_lyrics_word_sync_summary">Bevorzuge wortweise Songtexte, wenn verfügbar. Wenn Songtexte Wort-Timing enthalten, hebt dies jedes Wort oder jede Silbe synchron zur Musik hervor.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Nicht gespielte Songtexte ausblenden.</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Songtextzeilen oberhalb der aktuell abgespielten Zeile ausblenden</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Noch nicht abgespielte Songtextzeilen ausblenden</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Blende Songtextzeilen unterhalb des aktuell gespielten Songs aus.</string>
   <string name="morphe_music_lyrics_mediasession_title">MediaSession-Songtexte auf dem Sperrbildschirm anzeigen</string>
   <string name="morphe_music_lyrics_miniplayer_title">Miniplayer-Songtexte anzeigen.</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Anzeige von Künstler und Titel […] EIN „Künstler – Titel“ und AUS „Titel – Künstler“. Das hat keinen Einfluss auf die Songtextsuche.</string>
@@ -459,8 +455,6 @@ Erforderliche Cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_about_summary">"Songtexte werden anhand von Titel und Künstler gesucht, […] Du kannst auch die Aktualisieren-Schaltfläche verwenden, um manuell zwischen Versionen zu wechseln. […] Alle aktivierten Anbieter werden nicht immer in deiner Reihenfolge angefragt, sondern antworten basierend auf ihrer Geschwindigkeit."</string>
   <string name="morphe_music_lyrics_hide_info_title">Creditszeile ausblenden.</string>
   <string name="morphe_music_lyrics_hide_info_summary">Blende die unter den Songtexten angezeigte Creditszeile aus.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Übersetzung und Romanisierung vertauschen.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">EIN setzt die Romanisierung unter die Songtexte und die Übersetzung darüber; AUS lässt die Romanisierung darüber und die Übersetzung darunter.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-kompatible Übersetzung</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Verwenden Sie eine benutzerdefinierte OpenAI-kompatible API für Übersetzung und Romanisierung anstelle von Google Übersetzer</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">KI-Übersetzungseinstellungen</string>

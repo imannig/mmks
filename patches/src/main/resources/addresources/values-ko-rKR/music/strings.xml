@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -428,10 +428,6 @@ LOGIN_INFO"</string>
   <string name="morphe_music_lyrics_saved">저장됨</string>
   <string name="morphe_music_lyrics_word_sync_title">동기화된 단어 또는 음절 강조 표시하기</string>
   <string name="morphe_music_lyrics_word_sync_summary">가능한 경우 단어 단위로 표시되는 가사를 우선합니다. 가사에 단어별 타이밍 정보가 포함되어 있으면, 음악에 맞춰 각 단어 음절을 순서대로 강조 표시합니다</string>
-  <string name="morphe_music_lyrics_hide_played_title">재생된 가사 숨기기</string>
-  <string name="morphe_music_lyrics_hide_played_summary">현재 재생 중인 줄 위의 가사 줄을 숨깁니다</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">재생되지 않은 가사 숨기기</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">현재 재생 중인 줄 아래의 가사 줄을 숨깁니다</string>
   <string name="morphe_music_lyrics_mediasession_title">잠금 화면에 MediaSession 가사 표시하기</string>
   <string name="morphe_music_lyrics_miniplayer_title">미니플레이어 가사 표시하기</string>
   <string name="morphe_music_lyrics_display_artist_first_title">아티스트 및 제목 표시 순서</string>
@@ -466,8 +462,6 @@ LOGIN_INFO"</string>
   <string name="morphe_music_lyrics_about_summary">"가사는 트랙 제목과 아티스트를 기준으로 검색되므로, 메타데이터가 특이한 곡은 가사를 찾지 못하거나 잘못된 버전의 가사가 검색될 수 있습니다. 또한 새로고침 버튼을 눌러 수동으로 다른 버전으로 변경해 볼 수도 있습니다. 서드파티 가사 제공자에서 가사를 찾지 못한 경우에는 앱에 내장 가사 또는 삽입 가사가 대신 표시됩니다. * 표시가 있는 제공자는 사용하려면 토큰이 필요합니다. 활성화된 모든 가사 제공자가 항상 설정한 순서대로 요청되는 것은 아니며, 각 제공자의 응답 속도에 따라 결과가 반환됩니다"</string>
   <string name="morphe_music_lyrics_hide_info_title">크레딧 라인 숨기기</string>
   <string name="morphe_music_lyrics_hide_info_summary">가사 아래에 표시되는 크레딧 라인을 숨깁니다</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">번역과 로마자 표기 위치 바꾸기</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">활성화되면 로마자 표기를 가사 아래에 표시하고, 번역은 가사 위에 표시합니다; 비활성화되면 로마자 표기를 가사 위에 표시하고, 번역은 가사 아래에 표시합니다</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI 호환 번역</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Google 번역 대신 사용자 정의 OpenAI 호환 API를 사용하여 번역 및 로마자 표기를 수행합니다</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI 번역 설정</string>

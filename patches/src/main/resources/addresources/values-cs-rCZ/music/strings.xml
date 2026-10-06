@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Požadované cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAP
   <string name="morphe_music_lyrics_saved">Uloženo</string>
   <string name="morphe_music_lyrics_word_sync_title">Zvýrazňovat synchronizovaná slova nebo slabiky</string>
   <string name="morphe_music_lyrics_word_sync_summary">Upřednostnit texty slovo po slově, pokud jsou k dispozici. Když texty obsahují načasování slov, zvýrazní každé slovo nebo slabiku v rytmu hudby.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Skrýt […] texty.</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Skrýt řádky textu nad aktuálně přehrávaným řádkem</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Skrýt nepřehrávané texty</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Skrýt řádky textu pod aktuálně přehrávanou […] obrazovkou.</string>
   <string name="morphe_music_lyrics_mediasession_title">Zobrazovat texty MediaSession na zamykací obrazovce</string>
   <string name="morphe_music_lyrics_miniplayer_title">Zobrazovat texty v minipřehrávači</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Pořadí zobrazení interpreta a názvu</string>
@@ -459,8 +455,6 @@ Požadované cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAP
   <string name="morphe_music_lyrics_about_summary">"Texty se vyhledávají podle názvu skladby a interpreta, takže u skladby s neobvyklými metadaty nemusí být nalezeno nic, nebo může být nalezena nesprávná verze. Můžete také zkusit tlačítko obnovení pro ruční přepnutí verzí. Pokud nejsou nalezeny žádné texty od třetích stran, zobrazí se místo toho vestavěné nebo vložené texty. Poskytovatelé označení hvězdičkou vyžadují pro povolení token. Ne všichni povolení poskytovatelé jsou vždy dotazováni v pořadí, které zvolíte, ale odpovídají podle své rychlosti."</string>
   <string name="morphe_music_lyrics_hide_info_title">Skrýt řádek s uvedením zdroje</string>
   <string name="morphe_music_lyrics_hide_info_summary">Skrýt řádek s uvedením zdroje zobrazený pod textem písně.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Prohodit překlad a romanizaci</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Zapnuto umístí romanizaci pod texty a překlad nad texty; Vypnuto ponechá romanizaci nad texty a překlad pod texty.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Překlad kompatibilní s OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Použít vlastní API kompatibilní s OpenAI pro překlad a romanizaci místo Google Překladače</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Nastavení AI překladu</string>

@@ -418,13 +418,21 @@ public final class SpotifyProvider implements LyricsProvider {
             final long startMs = parseStartTimeMs(syllable);
             final long endMs = syllable.optLong("endTimeMs", startMs);
             final int numChars = syllable.optInt("numChars", 0);
-            if (numChars <= 0 || charOffset >= lineText.length()) {
+            if (numChars <= 0) {
                 continue;
+            }
+
+            // Skip any whitespace in lineText before this syllable
+            while (charOffset < lineText.length() && Character.isWhitespace(lineText.charAt(charOffset))) {
+                charOffset++;
+            }
+            if (charOffset >= lineText.length()) {
+                break;
             }
 
             final int end = Math.min(charOffset + numChars, lineText.length());
             final String wordText = lineText.substring(charOffset, end);
-            final boolean spaceAfter = end < lineText.length();
+            final boolean spaceAfter = (end < lineText.length() && Character.isWhitespace(lineText.charAt(end)));
             words.add(new Word(startMs, endMs, wordText, null, spaceAfter));
             charOffset = end;
         }

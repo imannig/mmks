@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Da biste osigurali sinhronizaciju scrobbling-a tokom reprodukcije u pozadini, po
   <string name="morphe_music_lyrics_saved">Сачувано</string>
   <string name="morphe_music_lyrics_word_sync_title">Истакни синхронизоване речи или слогове.</string>
   <string name="morphe_music_lyrics_word_sync_summary">Дај предност текстовима реч по реч када су доступни. Када текстови носе време, истакните сваку реч или слог у складу са музиком.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Сакриј […] линију</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Сакријте редове текста изнад тренутно репродукованог реда</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Сакриј неодсвиране текстове песама.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Сакриј редове текстова испод тренутно репродукованог […] екрана.</string>
   <string name="morphe_music_lyrics_mediasession_title">Прикажите MediaSession текстове на закључаном екрану</string>
   <string name="morphe_music_lyrics_miniplayer_title">Прикажи текстове у миниплејеру.</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Приказ извођача и наслова […] УКЉУЧЕНО: \"Извођач - Наслов\", ИСКЉУЧЕНО: \"Наслов - Извођач\". Не утиче на претрагу текстова.</string>
@@ -459,8 +455,6 @@ Da biste osigurali sinhronizaciju scrobbling-a tokom reprodukcije u pozadini, po
   <string name="morphe_music_lyrics_about_summary">"Текстови се проналазе по називу песме и извођачу, […] Такође можете притиснути дугме за освежавање да ручно промените верзију. […] Сви омогућени провајдери се не позивају увек вашим редоследом, већ одговарају на основу своје брзине."</string>
   <string name="morphe_music_lyrics_hide_info_title">Сакриј линију са заслугама</string>
   <string name="morphe_music_lyrics_hide_info_summary">Сакриј линију са заслугама приказану испод текстова.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Замени превод и романизацију.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">УКЉУЧЕНО поставља романизацију испод текста, а превод изнад; ИСКЉУЧЕНО задржава романизацију изнад и превод испод.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-компатибилан превод</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Користите прилагођени OpenAI-компатибилни API за превод и романизацију уместо Google Translate-а.</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Подешавања AI превода</string>

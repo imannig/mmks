@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -414,10 +414,6 @@ Zahtevani piškotki: SID, HSID, SSID, SAPISID, __Secure-3APISID, __Secure-1APISI
   <string name="morphe_music_lyrics_saved">Shranjeno</string>
   <string name="morphe_music_lyrics_word_sync_title">Poudarite sinhronizirane besede ali zloge</string>
   <string name="morphe_music_lyrics_word_sync_summary">Dajte prednost besedilom po posameznih besedah, kadar so na voljo. Ko ima besedilo časovne podatke za besede, poudari vsako besedo ali zlog v skladu z glasbo.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Skrijte že predvajane vrstice besedila</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Skrijte vrstice besedila nad trenutno predvajano vrstico.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Skrijte še nepredvane vrstice besedila</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Skrijte vrstice besedila pod trenutno predvajano vrstico.</string>
   <string name="morphe_music_lyrics_mediasession_title">Prikažite besedilo MediaSession na zaklenjenem zaslonu.</string>
   <string name="morphe_music_lyrics_miniplayer_title">Prikažite besedilo v mini predvajalniku.</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Vrstni red prikaza izvajalca in naslova</string>
@@ -452,8 +448,6 @@ Zahtevani piškotki: SID, HSID, SSID, SAPISID, __Secure-3APISID, __Secure-1APISI
   <string name="morphe_music_lyrics_about_summary">"Besedilo se išče po naslovu skladbe in izvajalcu, […] Poskusite lahko tudi z gumbom za osvežitev, da ročno preklapljate med različicami. […] Vsi omogočeni ponudniki niso vedno klicani v vašem vrstnem redu, ampak se odzovejo glede na svojo hitrost."</string>
   <string name="morphe_music_lyrics_hide_info_title">Skrijte vrstico z avtorstvom</string>
   <string name="morphe_music_lyrics_hide_info_summary">Skrijte vrstico z avtorstvom, prikazano pod besedilom.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Zamenjajte prevod in romanizacijo.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Ko je vklopljeno, se romanizacija prikaže pod besedilom, prevod pa zgoraj; ko je izklopljeno, ostane romanizacija zgoraj, prevod pa spodaj</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Prevajanje, združljivo z OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Uporabi API, združljiv z OpenAI, za prevajanje in romanizacijo namesto Google Prevajalnika</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Nastavitve AI prevajanja</string>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Nødvendige informasjonskapsler: SID, HSID, SSID, SAPISID, __Secure-1PAPISID, __
   <string name="morphe_music_lyrics_saved">Lagret</string>
   <string name="morphe_music_lyrics_word_sync_title">Marker synkroniserte ord eller stavelser</string>
   <string name="morphe_music_lyrics_word_sync_summary">Prioriter ord-for-ord-tekster når de er tilgjengelige. Når teksten har tidsstempling for ord, vises hvert ord eller hver stavelse synkronisert med musikken</string>
-  <string name="morphe_music_lyrics_hide_played_title">Skjul […] linje</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Skjul sangtekstlinjene over linjen som spilles for øyeblikket</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Skjul ikke-avspilte tekster</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Skjul tekstlinjer under gjeldende avspilling […] skjerm</string>
   <string name="morphe_music_lyrics_mediasession_title">Vis MediaSession-sangtekster på låseskjermen</string>
   <string name="morphe_music_lyrics_miniplayer_title">Vis minispillertekster</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Visningsrekkefølge for Artist og Tittel</string>
@@ -464,8 +460,6 @@ Nødvendige informasjonskapsler: SID, HSID, SSID, SAPISID, __Secure-1PAPISID, __
   <string name="morphe_music_lyrics_about_summary">"Sangtekster slås opp etter tittel og artist, så et spor med uvanlig metadata kan gi ingen treff eller feil versjon. Du kan også prøve oppdateringsknappen for å bytte versjoner manuelt. Når ingen tredjepartssangtekster finnes, vises innebygde eller integrerte tekster i stedet. Leverandører merket med * krever et token for å aktiveres. Alle aktiverte leverandører blir ikke alltid forespurt i den rekkefølgen du har valgt, men svarer basert på hastigheten deres"</string>
   <string name="morphe_music_lyrics_hide_info_title">Skjul krediteringslinjen</string>
   <string name="morphe_music_lyrics_hide_info_summary">Skjul krediteringslinjen som vises under teksten</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Bytt om oversettelse og romanisering</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">PÅ setter romanisering under teksten og oversettelsen; AV holder romanisering over teksten og oversettelsen</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-kompatibel oversettelse</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Bruk et egendefinert OpenAI-kompatibelt API for oversettelse og romanisering i stedet for Google Oversetter</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI-oversettelsesinnstillinger</string>

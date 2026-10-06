@@ -193,15 +193,23 @@ public class Settings extends SharedYouTubeSettings {
     public static final StringSetting LYRICS_AI_BASE_URL = new StringSetting("morphe_music_lyrics_ai_base_url", "https://text.pollinations.ai/openai", true, parent(LYRICS_USE_AI_TRANSLATION));
     public static final StringSetting LYRICS_AI_API_TOKEN = new StringSetting("morphe_music_lyrics_ai_api_token", "", true, parent(LYRICS_USE_AI_TRANSLATION));
     public static final StringSetting LYRICS_AI_MODEL = new StringSetting("morphe_music_lyrics_ai_model", "openai-fast", true, parent(LYRICS_USE_AI_TRANSLATION));
+    public static final StringSetting LYRICS_TRANSLATION_PROVIDER = new StringSetting("morphe_music_lyrics_translation_provider", "google", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_ROMANIZATION_PROVIDER = new StringSetting("morphe_music_lyrics_romanization_provider", "google", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_TRANSLATE_TARGET_LANG = new StringSetting("morphe_music_lyrics_translate_target_lang", "app", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_GEMINI_API_KEY = new StringSetting("morphe_music_lyrics_gemini_api_key", "", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_GEMINI_MODEL = new StringSetting("morphe_music_lyrics_gemini_model", "gemini-2.0-flash", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_OPENROUTER_API_KEY = new StringSetting("morphe_music_lyrics_openrouter_api_key", "", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_OPENROUTER_MODEL = new StringSetting("morphe_music_lyrics_openrouter_model", "openai/gpt-4o-mini", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_OPENAI_API_KEY = new StringSetting("morphe_music_lyrics_openai_api_key", "", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_OPENAI_MODEL = new StringSetting("morphe_music_lyrics_openai_model", "gpt-4o-mini", true, parent(LYRICS_ENABLED));
+    public static final StringSetting LYRICS_DEEPL_API_KEY = new StringSetting("morphe_music_lyrics_deepl_api_key", "", true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_SHOW_ROMANIZE_BUTTON = new BooleanSetting("morphe_music_lyrics_show_romanize_button", FALSE, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_SHOW_REFRESH_BUTTON = new BooleanSetting("morphe_music_lyrics_show_refresh_button", FALSE, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_HIDE_INFO = new BooleanSetting("morphe_music_lyrics_hide_info", FALSE, true, parent(LYRICS_ENABLED));
-    public static final BooleanSetting LYRICS_SWAP_TRANS_ROMA = new BooleanSetting("morphe_music_lyrics_swap_trans_roma", FALSE, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_ROMANIZE = new BooleanSetting("morphe_music_lyrics_romanize", FALSE, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_WORD_SYNC = new BooleanSetting("morphe_music_lyrics_word_sync", TRUE, true, parent(LYRICS_ENABLED));
-    public static final BooleanSetting LYRICS_HIDE_PLAYED = new BooleanSetting("morphe_music_lyrics_hide_played", FALSE, true, parent(LYRICS_ENABLED));
-    public static final BooleanSetting LYRICS_HIDE_UNPLAYED = new BooleanSetting("morphe_music_lyrics_hide_unplayed", FALSE, true, parent(LYRICS_ENABLED));
-    public static final IntegerSetting LYRICS_TEXT_SIZE = new IntegerSetting("morphe_music_lyrics_text_size", 24, true, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_BLUR_INACTIVE = new BooleanSetting("morphe_music_lyrics_blur_inactive", TRUE, true, parent(LYRICS_ENABLED));
+    public static final IntegerSetting LYRICS_TEXT_SIZE = new IntegerSetting("morphe_music_lyrics_text_size", 26, true, parent(LYRICS_ENABLED));
     public static final IntegerSetting LYRICS_OFFSET_MS = new IntegerSetting("morphe_music_lyrics_offset_ms", 0, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_MEDIASESSION = new BooleanSetting("morphe_music_lyrics_mediasession", FALSE, true, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_MINIPLAYER = new BooleanSetting("morphe_music_lyrics_miniplayer", FALSE, true, parent(LYRICS_ENABLED));
@@ -344,7 +352,7 @@ public class Settings extends SharedYouTubeSettings {
         SeekBarPreference.register(new SeekBarConfig(LASTFM_DELAY_SECONDS,
                 30, 360, 10, "s"));
         SeekBarPreference.register(new SeekBarConfig(LYRICS_TEXT_SIZE,
-                14, 40, 2, "sp"));
+                18, 32, 2, "sp"));
         SeekBarPreference.register(new SeekBarConfig(LYRICS_OFFSET_MS,
                 -2000, 2000, 100, "ms"));
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ YouTube Music 8.x — 淡出效果僅在 9.x 及更高版本中運行"</string>
   <string name="morphe_music_lyrics_saved">已儲存</string>
   <string name="morphe_music_lyrics_word_sync_title">強調已同步的歌詞</string>
   <string name="morphe_music_lyrics_word_sync_summary">優先使用已同步歌詞而非未同步歌詞</string>
-  <string name="morphe_music_lyrics_hide_played_title">隱藏已播放行</string>
-  <string name="morphe_music_lyrics_hide_played_summary">隱藏目前播放中那一行上方的歌詞行</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">隱藏未播放的歌詞</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">隱藏目前播放中畫面下方的歌詞行</string>
   <string name="morphe_music_lyrics_mediasession_title">在鎖定畫面上顯示 MediaSession 歌詞</string>
   <string name="morphe_music_lyrics_miniplayer_title">顯示迷你播放器的歌詞</string>
   <string name="morphe_music_lyrics_display_artist_first_title">藝人和標題的顯示順序</string>
@@ -464,8 +460,6 @@ YouTube Music 8.x — 淡出效果僅在 9.x 及更高版本中運行"</string>
   <string name="morphe_music_lyrics_about_summary">"歌詞會依歌曲標題與藝人搜尋，接著依提供者排序。您可以按重新整理按鈕來切換版本。"</string>
   <string name="morphe_music_lyrics_hide_info_title">隱藏來源標示</string>
   <string name="morphe_music_lyrics_hide_info_summary">在歌詞畫面中隱藏來源標示</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">交換翻譯和羅馬拼音</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">開啟時將羅馬拼音放在歌詞下面，翻譯放在上面； 關閉時維持羅馬拼音放在上面，翻譯放在下面</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI 相容翻譯</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">使用自訂的 OpenAI 相容 API 進行翻譯和羅馬拼音，取代 Google 翻譯</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI 翻譯設定</string>

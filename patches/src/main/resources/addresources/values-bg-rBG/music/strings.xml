@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -412,10 +412,6 @@ YouTube Music 8.x — кросфейдът работи само в 9.x и по-
   <string name="morphe_music_lyrics_saved">Запазено</string>
   <string name="morphe_music_lyrics_word_sync_title">Открояване на синхронизираните думи или срички</string>
   <string name="morphe_music_lyrics_word_sync_summary">Дава приоритет на текст по думи, когато е наличен. Когато текстът има тайминг на думите, откроява всяка дума или сричка в синхрон с музиката.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Скриване на вече изпетите редове</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Скриване на редовете от текста над реда, който се изпълнява в момента.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Скриване на неизпетите редове</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Скриване на редовете от текста под реда, който се изпълнява в момента.</string>
   <string name="morphe_music_lyrics_mediasession_title">Показване на текстовете от MediaSession на заключения екран.</string>
   <string name="morphe_music_lyrics_miniplayer_title">Показване на текстовете в миниплейъра.</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Ред на показване на изпълнител и заглавие</string>
@@ -450,8 +446,6 @@ YouTube Music 8.x — кросфейдът работи само в 9.x и по-
   <string name="morphe_music_lyrics_about_summary">"Текстовете се търсят по заглавие на песен и изпълнител, така че песен с нестандартни метаданни може да не открие нищо или да открие грешната версия. Можете също да използвате бутона за опресняване, за да превключвате ръчно между версиите. Когато не се намерят текстове от трети страни, се показват вградените текстове. Доставчиците, отбелязани с *, изискват token, за да се активират. Всички активирани доставчици не винаги се извикват в реда, който сте задали; те отговарят според скоростта си."</string>
   <string name="morphe_music_lyrics_hide_info_title">Скриване на реда с кредитна информация</string>
   <string name="morphe_music_lyrics_hide_info_summary">Скриване на реда с кредитна информация, показан под текста.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Размяна на превода и романизацията</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">ВКЛ. поставя романизацията под текста и превода над него; ИЗКЛ. оставя романизацията над текста и превода под него.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-съвместим превод</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Използвайте персонализиран OpenAI-съвместим API за превод и романизация вместо Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Настройки за AI превод</string>

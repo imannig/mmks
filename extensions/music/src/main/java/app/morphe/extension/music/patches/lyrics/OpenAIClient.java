@@ -18,10 +18,12 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import app.morphe.extension.shared.Logger;
 
-final class OpenAIClient {
+public final class OpenAIClient {
 
     private static final int CONNECT_TIMEOUT_MS = 10_000;
     private static final int READ_TIMEOUT_MS = 45_000;
@@ -30,13 +32,58 @@ final class OpenAIClient {
     private OpenAIClient() {
     }
 
-    static int getMaxChars() {
+    public static int getMaxChars() {
         return MAX_CHARS;
     }
 
+    public static List<String> fetchModels(String modelsUrl, @Nullable String apiKey) {
+        List<String> models = new ArrayList<>();
+        try {
+            URL url = new URL(modelsUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            try {
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+                conn.setReadTimeout(15_000);
+                if (apiKey != null && !apiKey.isEmpty()) {
+                    conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+                }
+                int code = conn.getResponseCode();
+                if (code >= 200 && code < 300) {
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            sb.append(line);
+                        }
+                        JSONObject response = new JSONObject(sb.toString());
+                        JSONArray data = response.optJSONArray("data");
+                        if (data != null) {
+                            for (int i = 0; i < data.length(); i++) {
+                                JSONObject m = data.optJSONObject(i);
+                                if (m != null) {
+                                    String id = m.optString("id", null);
+                                    if (id != null && !id.isEmpty()) {
+                                        models.add(id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } finally {
+                conn.disconnect();
+            }
+        } catch (Exception e) {
+            Logger.printDebug(() -> "Failed to fetch models from " + modelsUrl, e);
+        }
+        return models;
+    }
+
     @Nullable
-    static String request(String baseUrl, String apiToken, String model,
-                          String userPrompt, @Nullable String systemPrompt) {
+    public static String request(String baseUrl, String apiToken, String model,
+                                 String userPrompt, @Nullable String systemPrompt) {
         try {
             JSONObject body = new JSONObject();
             body.put("model", model);
@@ -121,7 +168,7 @@ final class OpenAIClient {
     }
 
     @Nullable
-    static String extractLastNumberedBlock(String text) {
+    public static String extractLastNumberedBlock(String text) {
         if (text == null || text.isEmpty()) {
             return null;
         }
@@ -163,11 +210,11 @@ final class OpenAIClient {
         return sb.toString();
     }
 
-    static String stripLineNumber(String line) {
+    public static String stripLineNumber(String line) {
         return line.replaceFirst("^\\d+\\.\\s*", "");
     }
 
-    static boolean isNoteOrEmptyLine(String text) {
+    public static boolean isNoteOrEmptyLine(String text) {
         if (text == null) return true;
         String trimmed = text.trim();
         if (trimmed.isEmpty()) return true;

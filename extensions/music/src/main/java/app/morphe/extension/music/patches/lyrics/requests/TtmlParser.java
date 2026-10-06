@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import app.morphe.extension.music.patches.lyrics.Lyrics;
 import app.morphe.extension.music.patches.lyrics.LyricsLine;
 import app.morphe.extension.music.patches.lyrics.LyricsMerge;
+import app.morphe.extension.music.patches.lyrics.LyricsRomanizer;
 import app.morphe.extension.music.patches.lyrics.Word;
 import app.morphe.extension.shared.Logger;
 
@@ -221,6 +222,7 @@ final class TtmlParser {
             boolean inHead = false;
             boolean inBody = false;
             String divSongPart = null;
+            String divAgent = null;
 
             int event = p.getEventType();
             while (event != XmlPullParser.END_DOCUMENT) {
@@ -239,9 +241,13 @@ final class TtmlParser {
                         if (divSongPart == null) {
                             divSongPart = getAttr(p, NS_ITUNES, "songPart", "itunes:song-part");
                         }
+                        divAgent = getAttr(p, NS_TTM, "agent", "ttm:agent");
                     } else if ("p".equals(local) && inBody && !inHead) {
                         final String lineId = getAttr(p, NS_ITUNES, "key", "itunes:key");
-                        final String agentId = getAttr(p, NS_TTM, "agent", "ttm:agent");
+                        String agentId = getAttr(p, NS_TTM, "agent", "ttm:agent");
+                        if (agentId == null) {
+                            agentId = divAgent;
+                        }
                         final long pBegin = noTiming ? 0 : parseTime(getAttr(p, null, "begin", "begin"));
                         final long pEnd = noTiming ? 0 : parseTime(getAttr(p, null, "end", "end"));
                         final boolean hasTimeAttrs = !noTiming && (
@@ -251,6 +257,11 @@ final class TtmlParser {
                         final ParsedLine pl = processPElement(p, pBegin, pEnd, hasTimeAttrs);
 
                         if (pl != null && !pl.text().trim().isEmpty()) {
+                            final List<RomajiSyllable> lineSidecar =
+                                    findSidecarRoman(lineId, sidecarRoman);
+                            if (lineSidecar != null && !lineSidecar.isEmpty()) {
+                                alignRomajiToWords(pl.words(), lineSidecar);
+                            }
                             final LyricsLine line = new LyricsLine(
                                     pl.begin(), pl.end(), pl.text(), pl.words(),
                                     agentId, false, false, divSongPart);
@@ -266,14 +277,16 @@ final class TtmlParser {
                                 lines.add(bgLine);
                             }
 
-                            final List<RomajiSyllable> lineSidecar =
-                                    findSidecarRoman(lineId, sidecarRoman);
                             final String romaText = buildLineRomaji(
                                     pl.words(), lineSidecar);
                             romanization.add(new LyricsLine(
                                     LyricsLine.NO_TIME, romaText));
                             for (int i = 0; i < pl.bgLines().size(); i++) {
-                                romanization.add(new LyricsLine(LyricsLine.NO_TIME, ""));
+                                String bgRoma = "";
+                                if (pl.bgInlineRomanizations() != null && !pl.bgInlineRomanizations().isEmpty()) {
+                                    bgRoma = pl.bgInlineRomanizations().values().iterator().next();
+                                }
+                                romanization.add(new LyricsLine(LyricsLine.NO_TIME, bgRoma));
                             }
 
                             buildRomanizations(lineId, sidecarRoman, pl.words(), romanizations);
@@ -351,7 +364,10 @@ final class TtmlParser {
                     switch (localName(p.getName())) {
                         case "head" -> inHead = false;
                         case "body" -> inBody = false;
-                        case "div" -> divSongPart = null;
+                        case "div" -> {
+                            divSongPart = null;
+                            divAgent = null;
+                        }
                     }
                 }
                 event = p.next();
@@ -407,8 +423,12 @@ final class TtmlParser {
             final int agentNum = extractAgentNumber(agentId);
             boolean isDuet;
 
-            if (agentNum > 0) {
+            if (agentNum == 1000 || "v1000".equalsIgnoreCase(agentId)) {
+                isDuet = false;
+            } else if (agentNum > 0) {
                 isDuet = (agentNum % 2 == 0);
+                lastPersonAgentId = agentId;
+                lastPersonIsDuet = isDuet;
             } else {
                 final AgentInfo info = agentTypes.get(agentId);
                 final String type = info != null ? info.type() : AGENT_TYPE_PERSON;
@@ -416,7 +436,7 @@ final class TtmlParser {
                 if (AGENT_TYPE_GROUP.equals(type)) {
                     isDuet = false;
                 } else if (lastPersonAgentId == null) {
-                    isDuet = AGENT_TYPE_OTHER.equals(type);
+                    isDuet = AGENT_TYPE_OTHER.equals(type) || "v2".equalsIgnoreCase(agentId);
                 } else if (agentId.equals(lastPersonAgentId)) {
                     isDuet = lastPersonIsDuet;
                 } else {
@@ -433,6 +453,40 @@ final class TtmlParser {
                     original.startTimeMs(), original.endTimeMs(), original.text(),
                     original.words(), agentId, isDuet, original.isBG(),
                     original.songPart()));
+        }
+
+        // Invert duet alignment if the vast majority of lines were assigned to the opposite side
+        int totalCount = 0;
+        int rightCount = 0;
+        for (LyricsLine l : lines) {
+            if (l.agentId() != null) {
+                totalCount++;
+                if (l.isDuet()) rightCount++;
+            }
+        }
+        if (totalCount > 0 && Math.round((rightCount * 100f) / totalCount) >= 85) {
+            for (int i = 0; i < lines.size(); i++) {
+                LyricsLine orig = lines.get(i);
+                if (orig.agentId() != null) {
+                    lines.set(i, new LyricsLine(
+                            orig.startTimeMs(), orig.endTimeMs(), orig.text(),
+                            orig.words(), orig.agentId(), !orig.isDuet(), orig.isBG(), orig.songPart()));
+                }
+            }
+            rightCount = totalCount - rightCount;
+        }
+
+        // Keep standard alignment if nearly all lines fall on one side
+        int leftCount = totalCount - rightCount;
+        if (totalCount > 0 && (rightCount == 0 || (leftCount * 100f / totalCount) > 90)) {
+            for (int i = 0; i < lines.size(); i++) {
+                LyricsLine orig = lines.get(i);
+                if (orig.isDuet()) {
+                    lines.set(i, new LyricsLine(
+                            orig.startTimeMs(), orig.endTimeMs(), orig.text(),
+                            orig.words(), orig.agentId(), false, orig.isBG(), orig.songPart()));
+                }
+            }
         }
     }
 
@@ -513,7 +567,7 @@ final class TtmlParser {
                     final String begin = getAttr(p, null, "begin", "begin");
                     final String end = getAttr(p, null, "end", "end");
                     if (begin != null && end != null) {
-                        final String text = normalizeText(readTextContent(p));
+                        final String text = normalizeTextRaw(readTextContent(p));
                         if (!text.isEmpty()) {
                             syllables.add(new RomajiSyllable(
                                     parseTime(begin), parseTime(end), text));
@@ -529,9 +583,9 @@ final class TtmlParser {
             } else if (event == XmlPullParser.TEXT) {
                 final String text = p.getText();
                 if (text != null) {
-                    final String trimmed = normalizeText(text);
-                    if (!trimmed.isEmpty()) {
-                        syllables.add(new RomajiSyllable(0, 0, trimmed));
+                    final String raw = normalizeTextRaw(text);
+                    if (!raw.isEmpty()) {
+                        syllables.add(new RomajiSyllable(0, 0, raw));
                     }
                 }
             }
@@ -875,19 +929,22 @@ final class TtmlParser {
                     romanLang = getAttr(p, NS_XML, "lang", "xml:lang");
                 } else if ("container".equals(ruby)) {
                     inRubyContainer = true;
+                    inRubyBase = false;
+                    inRubyTextContainer = false;
+                    inRubyText = false;
                     rubyBaseBuf.setLength(0);
                     rubyTags.clear();
-                } else if ("base".equals(ruby) && inRubyContainer) {
+                } else if (("base".equals(ruby) || "baseContainer".equals(ruby)) && inRubyContainer) {
                     inRubyBase = true;
                     rubyBaseBuf.setLength(0);
                 } else if ("textContainer".equals(ruby) && inRubyContainer) {
                     inRubyTextContainer = true;
-                } else if ("text".equals(ruby) && inRubyTextContainer) {
+                } else if ("text".equals(ruby) && inRubyContainer) {
                     inRubyText = true;
                     rubyTextBuf.setLength(0);
                     rubyTextBegin = parseTime(beginAttr);
                     rubyTextEnd = parseTime(endAttr);
-                } else if (beginAttr != null && endAttr != null) {
+                } else if (beginAttr != null && endAttr != null && !inRubyContainer) {
                     inWord = true;
                     wordBuf.setLength(0);
                     wordBegin = parseTime(beginAttr);
@@ -949,6 +1006,9 @@ final class TtmlParser {
                         inRubyBase = false;
                     } else if (inRubyContainer) {
                         inRubyContainer = false;
+                        inRubyBase = false;
+                        inRubyTextContainer = false;
+                        inRubyText = false;
                         final String baseText = normalizeText(rubyBaseBuf.toString());
                         if (!baseText.isEmpty()) {
                             long rBegin = 0, rEnd = 0;
@@ -962,6 +1022,12 @@ final class TtmlParser {
                                 rRoma.append(rs.text());
                             }
                             String romaji = rRoma.length() > 0 ? rRoma.toString() : null;
+                            if (romaji != null) {
+                                romaji = LyricsRomanizer.romanizeJapanese(romaji);
+                                if (!LyricsRomanizer.isPurelyLatinScript(romaji)) {
+                                    romaji = null;
+                                }
+                            }
 
                             fullText.append(baseText);
                             words.add(new Word(rBegin, rEnd, baseText, romaji, false));
@@ -1038,9 +1104,9 @@ final class TtmlParser {
                     transBuf.append(raw);
                 } else if (inRoman) {
                     romanBuf.append(raw);
-                } else if (inWord) {
+                } else if (inWord && !inRubyContainer) {
                     wordBuf.append(raw);
-                } else if (!inBg) {
+                } else if (!inBg && !inRubyContainer) {
                     // Formatting newlines (whitespace + \n) between word spans - skip entirely
                     if (!formattingNewline) {
                         fullText.append(raw);
@@ -1219,10 +1285,22 @@ final class TtmlParser {
 
     private static String buildLineRomaji(List<Word> words,
                                           @Nullable List<RomajiSyllable> sidecar) {
+        if (sidecar != null && !sidecar.isEmpty()) {
+            final StringBuilder sb = new StringBuilder();
+            for (RomajiSyllable s : sidecar) {
+                if (s.text().isEmpty()) continue;
+                sb.append(s.text());
+            }
+            final String result = sb.toString().trim();
+            if (!result.isEmpty() && LyricsRomanizer.isPurelyLatinScript(result)) {
+                return result;
+            }
+        }
+
         final StringBuilder perWord = new StringBuilder();
         boolean hasPerWord = false;
         for (Word w : words) {
-            if (w.romaji() != null && !w.romaji().isEmpty()) {
+            if (w.romaji() != null && !w.romaji().isEmpty() && LyricsRomanizer.isPurelyLatinScript(w.romaji())) {
                 hasPerWord = true;
                 break;
             }
@@ -1230,29 +1308,15 @@ final class TtmlParser {
         if (hasPerWord) {
             for (Word w : words) {
                 String r = w.romaji();
-                if (r != null && !r.isEmpty()) {
-                    //noinspection SizeReplaceableByIsEmpty
-                    if (perWord.length() > 0) perWord.append(' ');
+                if (r != null && !r.isEmpty() && LyricsRomanizer.isPurelyLatinScript(r)) {
                     perWord.append(r);
+                    if (w.endsWithSpace() && !r.endsWith(" ")) {
+                        perWord.append(' ');
+                    }
                 }
             }
-            //noinspection SizeReplaceableByIsEmpty
             if (perWord.length() > 0) {
-                return perWord.toString();
-            }
-        }
-
-        if (sidecar != null && !sidecar.isEmpty()) {
-            final StringBuilder sb = new StringBuilder();
-            for (RomajiSyllable s : sidecar) {
-                if (s.text().isEmpty()) continue;
-                //noinspection SizeReplaceableByIsEmpty
-                if (sb.length() > 0) sb.append(' ');
-                sb.append(s.text());
-            }
-            final String result = sb.toString().trim();
-            if (!result.isEmpty()) {
-                return result;
+                return perWord.toString().trim();
             }
         }
 
@@ -1294,13 +1358,14 @@ final class TtmlParser {
             final StringBuilder sb = new StringBuilder();
             for (Word w : alignedWords) {
                 if (w.romaji() != null && !w.romaji().isEmpty()) {
-                    //noinspection SizeReplaceableByIsEmpty
-                    if (sb.length() > 0) sb.append(' ');
                     sb.append(w.romaji());
+                    if (w.endsWithSpace() && !w.romaji().endsWith(" ")) {
+                        sb.append(' ');
+                    }
                 }
             }
             final String text = sb.toString().trim();
-            if (!text.isEmpty()) {
+            if (!text.isEmpty() && LyricsRomanizer.isPurelyLatinScript(text)) {
                 final String langKey = lang != null ? lang : "romaji";
                 final List<LyricsLine> langLines = romanizations.computeIfAbsent(
                         langKey, k -> new ArrayList<>());

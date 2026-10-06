@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Vereiste koekies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISID
   <string name="morphe_music_lyrics_saved">Gestoor</string>
   <string name="morphe_music_lyrics_word_sync_title">Raak aan ▲/▼ om die prioriteitsorde te stel, en die blokkie om elke verskaffer te aktiveer of deaktiveer.</string>
   <string name="morphe_music_lyrics_word_sync_summary">Alle verskaffers gedeaktiveer — ingeboude lirieke en ingebedde lirieke.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Verskafferorde terugstel?</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Versteek liriekreëls bo die reël wat tans speel</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Versteek ongespeelde lirieke</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Herstel verskaffers na die standaard prioriteitsorde.</string>
   <string name="morphe_music_lyrics_mediasession_title">Wys MediaSession-lirieke op die sluitskerm</string>
   <string name="morphe_music_lyrics_miniplayer_title">Wys romaniseer-knoppie</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Wys romaniseer-knoppie</string>
@@ -459,8 +455,6 @@ Vereiste koekies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISID
   <string name="morphe_music_lyrics_about_summary">"Lirieke word gesoek volgens kunstenaar en titel, […] Jy kan ook die verfris-knoppie probeer om handmatig van weergawe te wissel. […] Alle verskaffers word nie altyd in die bestelling versoek nie, maar reageer op grond van hul spoed"</string>
   <string name="morphe_music_lyrics_hide_info_title">Lirieke-bron?</string>
   <string name="morphe_music_lyrics_hide_info_summary">Lirieke word gesoek volgens kunstenaar en titel, […] Jy kan ook die verfris-knoppie probeer om handmatig van weergawe te wissel. […] Alle verskaffers word nie altyd in die bestelling versoek nie, maar reageer op grond van hul spoed</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Lirieke-bron?</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Lirieke-bron?</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-versoenbare vertaling</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Gebruik \'n aangepaste OpenAI-versoenbare API vir vertaling en romanisering in plaas van Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI-vertaalinstellings</string>

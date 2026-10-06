@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Cookies necessários: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAP
   <string name="morphe_music_lyrics_saved">Guardado</string>
   <string name="morphe_music_lyrics_word_sync_title">Destacar palavras ou sílabas sincronizadas</string>
   <string name="morphe_music_lyrics_word_sync_summary">Priorizar letras sincronizadas em nível de palavra</string>
-  <string name="morphe_music_lyrics_hide_played_title">Ocultar a linha reproduzida</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Ocultar linhas da letra acima da linha em reprodução</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Ocultar letras não reproduzidas</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Ocultar linha de letras não reproduzidas</string>
   <string name="morphe_music_lyrics_mediasession_title">Mostrar letras da MediaSession na tela de bloqueio</string>
   <string name="morphe_music_lyrics_miniplayer_title">Mostrar letras do miniplayer</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Ordem de exibição do artista e do título</string>
@@ -464,8 +460,6 @@ Cookies necessários: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAP
   <string name="morphe_music_lyrics_about_summary">"As letras são pesquisadas pelo título e pelo artista da faixa, então uma faixa com metadados incomuns pode não encontrar nada ou encontrar a versão errada. Você também pode tentar o botão de atualizar para trocar as versões manualmente. Quando nenhuma letra de terceiros é encontrada, as letras integradas ou incorporadas são exibidas em seu lugar. Provedores marcados com * exigem um token para serem ativados. Nem todos os provedores ativados são consultados na sua ordem, mas respondem com base na velocidade deles."</string>
   <string name="morphe_music_lyrics_hide_info_title">Ocultar a linha de crédito</string>
   <string name="morphe_music_lyrics_hide_info_summary">Ocultar a linha de crédito exibida abaixo das letras</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Trocar tradução e romanização</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">ON coloca a romanização abaixo das letras e a tradução acima; OFF mantém a romanização acima e a tradução abaixo</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Tradução compatível com OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Use uma API personalizada compatível com OpenAI para tradução e romanização em vez do Google Tradutor</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Configurações de tradução por IA</string>

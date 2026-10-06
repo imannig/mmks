@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Cookies nécessaires : SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_saved">Enregistré</string>
   <string name="morphe_music_lyrics_word_sync_title">Mettre en surbrillance les mots ou les syllabes synchronisés</string>
   <string name="morphe_music_lyrics_word_sync_summary">Privilégier les paroles mot à mot lorsqu\'elles sont disponibles. Lorsque les paroles disposent d\'un minutage mot à mot, mettre en surbrillance chaque mot ou chaque syllabe en rythme avec la musique</string>
-  <string name="morphe_music_lyrics_hide_played_title">Masquer les paroles déjà lues</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Masquer les lignes de paroles au-dessus de la ligne en cours de lecture</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Masquer les paroles non lues</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Masquer les lignes de paroles au-dessous de la ligne en cours de lecture</string>
   <string name="morphe_music_lyrics_mediasession_title">Afficher les paroles MediaSession sur l\'écran de verrouillage</string>
   <string name="morphe_music_lyrics_miniplayer_title">Afficher les paroles dans le mini-lecteur</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Ordre d\'affichage de l\'Artiste et du Titre</string>
@@ -464,8 +460,6 @@ Cookies nécessaires : SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_about_summary">"Les paroles sont recherchées à partir du titre du morceau et de l'artiste. Ainsi un morceau dont les métadonnées sont inhabituelles peut ne rien trouver ou trouver la mauvaise version. Vous pouvez également utiliser le bouton 'Actualiser' pour changer manuellement de version. Lorsqu'aucune parole provenant d'un service tiers n'est trouvée, les paroles intégrées ou natives sont affichées à la place. Les fournisseurs marqués d'un * nécessitent un jeton pour être activés. Tous les fournisseurs activés ne sont pas toujours sollicités dans votre ordre, mais répondent en fonction de leur vitesse"</string>
   <string name="morphe_music_lyrics_hide_info_title">Masquer la ligne de crédit</string>
   <string name="morphe_music_lyrics_hide_info_summary">Masquer la ligne de crédit affichée sous les paroles</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Inverser la traduction et la romanisation</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">ACTIVÉ place la romanisation sous les paroles et la traduction au-dessus ; DÉSACTIVÉ conserve la romanisation au-dessus et la traduction en dessous</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Traduction compatible avec OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Utiliser une API personnalisée compatible avec OpenAI pour la traduction et la romanisation au lieu de Google Traduction</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Paramètres de traduction par IA</string>

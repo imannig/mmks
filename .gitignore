@@ -1,6 +1,7 @@
 # Gradle files
 .gradle/
 build/
+bin/
 
 # Local configuration file (sdk path, etc.)
 local.properties
@@ -35,3 +36,11 @@ google-services.json
 
 # NPM modules
 node_modules/
+
+YouLyPlusExample/
+BitChord/
+mantaps/
+apps-log/
+/morphe/
+YouLyPlus-example/
+.agents/

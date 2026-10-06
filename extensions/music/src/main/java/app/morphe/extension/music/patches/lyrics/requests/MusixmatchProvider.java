@@ -41,8 +41,8 @@ public final class MusixmatchProvider implements LyricsProvider {
     private static final String USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 17)";
     private static final String COOKIE = "AWSELB=0; AWSELBCORS=0";
 
-    private static final long MIN_WORD_MS = 40;
-    private static final long BRIDGING_THRESHOLD_MS = 400;
+    private static final long MIN_WORD_MS = 100;
+    private static final long BRIDGING_THRESHOLD_MS = 2500;
     private static final long REQUEST_THROTTLE_MS = 500;
 
     private static final AtomicLong lastRequestTime = new AtomicLong(0);
@@ -416,13 +416,14 @@ public final class MusixmatchProvider implements LyricsProvider {
             final JSONArray lArr = line.optJSONArray("l");
             if (lArr != null && lArr.length() > 0) {
                 words = new ArrayList<>();
+                int xCursor = 0;
                 for (int j = 0; j < lArr.length(); j++) {
                     JSONObject w = lArr.optJSONObject(j);
                     if (w == null) {
                         continue;
                     }
-                    final String chunk = LyricsRequests.optString(w, "c");
-                    if (chunk == null || chunk.isEmpty()) {
+                    final String rawChunk = LyricsRequests.optString(w, "c");
+                    if (rawChunk == null || rawChunk.isEmpty()) {
                         continue;
                     }
                     final double offset = w.optDouble("o", 0);
@@ -435,10 +436,14 @@ public final class MusixmatchProvider implements LyricsProvider {
                         if (nextW != null) {
                             final double nextOffset = nextW.optDouble("o", offset);
                             final long nextWs = (long) ((lineTs + nextOffset) * 1000);
-                            if (nextWs - ws <= BRIDGING_THRESHOLD_MS) {
-                                we = nextWs;
+                            if (nextWs > ws) {
+                                if (nextWs - ws <= BRIDGING_THRESHOLD_MS) {
+                                    we = nextWs;
+                                } else {
+                                    we = ws + BRIDGING_THRESHOLD_MS;
+                                }
                             } else {
-                                we = ws;
+                                we = ws + MIN_WORD_MS;
                             }
                         } else {
                             we = lineEndMs;
@@ -447,19 +452,53 @@ public final class MusixmatchProvider implements LyricsProvider {
                         we = lineEndMs;
                     }
                     if (we <= ws) {
-                        we = ws + MIN_WORD_MS;
+                        we = ws + 150L;
+                    } else if (we - ws > BRIDGING_THRESHOLD_MS) {
+                        we = ws + BRIDGING_THRESHOLD_MS;
                     } else if (we - ws < MIN_WORD_MS) {
                         we = ws + MIN_WORD_MS;
                     }
-                    words.add(new Word(ws, we, chunk));
+                    if (nextIdx < lArr.length()) {
+                        JSONObject nextW = lArr.optJSONObject(nextIdx);
+                        if (nextW != null) {
+                            final double nextOffset = nextW.optDouble("o", offset);
+                            final long nextWs = (long) ((lineTs + nextOffset) * 1000);
+                            if (nextWs > ws && we > nextWs) {
+                                we = nextWs;
+                            }
+                        }
+                    }
+
+                    boolean endsWithSpace = rawChunk.endsWith(" ") || rawChunk.endsWith("\t");
+                    String chunk = endsWithSpace ? rawChunk.stripTrailing() : rawChunk;
+
+                    if (x != null && !x.isEmpty()) {
+                        while (xCursor < x.length() && Character.isWhitespace(x.charAt(xCursor))) {
+                            xCursor++;
+                        }
+                        if (xCursor < x.length()) {
+                            int matchLen = chunk.length();
+                            if (xCursor + matchLen <= x.length()
+                                    && x.regionMatches(true, xCursor, chunk, 0, matchLen)) {
+                                chunk = x.substring(xCursor, xCursor + matchLen);
+                                int afterMatch = xCursor + matchLen;
+                                endsWithSpace = (afterMatch < x.length() && Character.isWhitespace(x.charAt(afterMatch)));
+                                xCursor = afterMatch;
+                            }
+                        }
+                    }
+
+                    words.add(new Word(ws, we, chunk, null, endsWithSpace));
                 }
             }
 
             final String text;
-            if (words != null && !words.isEmpty()) {
+            if (x != null && !x.trim().isEmpty()) {
+                text = x.trim();
+            } else if (words != null && !words.isEmpty()) {
                 text = joinWords(words);
             } else {
-                text = x == null ? "" : x;
+                text = "";
             }
             if (text.isEmpty()) {
                 continue;
@@ -627,12 +666,11 @@ public final class MusixmatchProvider implements LyricsProvider {
     private static String joinWords(List<Word> words) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < words.size(); i++) {
-            final String t = words.get(i).text();
-            if (i > 0 && !t.isEmpty() && !t.startsWith(" ")
-                    && sb.length() > 0 && sb.charAt(sb.length() - 1) != ' ') {
+            final Word w = words.get(i);
+            sb.append(w.text());
+            if (w.endsWithSpace() && i < words.size() - 1) {
                 sb.append(' ');
             }
-            sb.append(t);
         }
         return sb.toString();
     }

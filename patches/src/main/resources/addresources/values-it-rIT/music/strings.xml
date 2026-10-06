@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -420,10 +420,6 @@ Cookie richiesti: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISID
   <string name="morphe_music_lyrics_saved">Salvato</string>
   <string name="morphe_music_lyrics_word_sync_title">Lingua dei testi</string>
   <string name="morphe_music_lyrics_word_sync_summary">Mostra i testi</string>
-  <string name="morphe_music_lyrics_hide_played_title">Testi sincronizzati</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Nascondi le righe dei testi sopra la riga attualmente in riproduzione</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Copia i testi</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Salva il file sorgente dei testi</string>
   <string name="morphe_music_lyrics_mediasession_title">Mostra i testi di MediaSession sulla schermata di blocco</string>
   <string name="morphe_music_lyrics_miniplayer_title">Mostra i testi nel mini-player</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Visualizzazione di artista e titolo su MediaSession. ON \"Artista - Titolo\" e OFF \"Titolo - Artista\". Non influisce sulla ricerca dei testi.</string>
@@ -458,8 +454,6 @@ Cookie richiesti: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISID
   <string name="morphe_music_lyrics_about_summary">"Testi non disponibili"</string>
   <string name="morphe_music_lyrics_hide_info_title">Nascondi la riga dei crediti</string>
   <string name="morphe_music_lyrics_hide_info_summary">Caricamento testi...</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Scambia traduzione e romanizzazione</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Riprova</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Traduzione compatibile con OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Usa un\'API personalizzata compatibile con OpenAI per traduzione e romanizzazione invece di Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Impostazioni di traduzione AI</string>

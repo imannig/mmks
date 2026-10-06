@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ YouTube Music 8.x — การเฟดข้ามจะทำงานบน 
   <string name="morphe_music_lyrics_saved">บันทึกแล้ว</string>
   <string name="morphe_music_lyrics_word_sync_title">ไฮไลต์คำหรือพยางค์ที่ซิงก์</string>
   <string name="morphe_music_lyrics_word_sync_summary">ให้ความสำคัญกับเนื้อเพลงแบบคำต่อคำเมื่อมีให้บริการ เมื่อเนื้อเพลงมีข้อมูลเวลาของคำ จะไฮไลต์แต่ละคำหรือพยางค์ให้ตรงกับจังหวะเพลง</string>
-  <string name="morphe_music_lyrics_hide_played_title">ซ่อนบรรทัดที่เล่นแล้ว […]</string>
-  <string name="morphe_music_lyrics_hide_played_summary">ซ่อนบรรทัดเนื้อเพลงที่อยู่เหนือบรรทัดที่กำลังเล่น</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">ซ่อนเนื้อเพลงที่ยังไม่เล่น</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">ซ่อนเนื้อเพลงที่อยู่ต่ำกว่าบรรทัดที่กำลังเล่น […] หน้าจอ</string>
   <string name="morphe_music_lyrics_mediasession_title">แสดงเนื้อเพลง MediaSession บนหน้าจอล็อก</string>
   <string name="morphe_music_lyrics_miniplayer_title">แสดงเนื้อเพลงในมินิเพลเยอร์</string>
   <string name="morphe_music_lyrics_display_artist_first_title">การแสดงศิลปินและชื่อเพลง […] เปิด \"ศิลปิน - ชื่อเพลง\" และปิด \"ชื่อเพลง - ศิลปิน\" ไม่มีผลต่อการค้นหาเนื้อเพลง</string>
@@ -459,8 +455,6 @@ YouTube Music 8.x — การเฟดข้ามจะทำงานบน 
   <string name="morphe_music_lyrics_about_summary">"ค้นหาเนื้อเพลงจากชื่อเพลงและศิลปิน […] คุณยังลองใช้ปุ่มรีเฟรชเพื่อสลับเวอร์ชันด้วยตนเองได้ เมื่อไม่พบเนื้อเพลงของบุคคลที่สาม ระบบจะแสดงเนื้อเพลงในตัวหรือเนื้อเพลงแบบฝังแทน […] ผู้ให้บริการที่เปิดใช้ทั้งหมดไม่ได้ถูกเรียกตามลำดับที่คุณเลือกเสมอไป แต่จะตอบสนองตามความเร็วของบริการ"</string>
   <string name="morphe_music_lyrics_hide_info_title">ซ่อนบรรทัดเครดิต</string>
   <string name="morphe_music_lyrics_hide_info_summary">ซ่อนบรรทัดเครดิตที่แสดงใต้เนื้อเพลง</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">สลับคำแปลและการโรมาไนซ์</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">การเปิดจะวางการโรมาไนซ์ไว้ใต้เนื้อเพลงและคำแปลไว้ด้านบน การปิดจะให้การโรมาไนซ์อยู่ด้านบนและคำแปลอยู่ด้านล่าง</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">การแปลที่เข้ากันได้กับ OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">ใช้ API ที่เข้ากันได้กับ OpenAI แบบกำหนดเองสำหรับการแปลและการถอดเป็นอักษรโรมันแทน Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">การตั้งค่าการแปลด้วย AI</string>

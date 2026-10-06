@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Cookies requeridas: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPIS
   <string name="morphe_music_lyrics_saved">Guardado</string>
   <string name="morphe_music_lyrics_word_sync_title">Resaltar palabras o sílabas sincronizadas</string>
   <string name="morphe_music_lyrics_word_sync_summary">Prioriza las letras palabra por palabra cuando estén disponibles. Cuando las letras incluyen tiempos por palabra, resalta cada palabra o sílaba al ritmo de la música</string>
-  <string name="morphe_music_lyrics_hide_played_title">Ocultar letras ya reproducidas</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Oculta las líneas de letra por encima de la línea que se está reproduciendo</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Ocultar letras no reproducidas</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Oculta las líneas de letra por debajo de la línea que se está reproduciendo</string>
   <string name="morphe_music_lyrics_mediasession_title">Mostrar letras de MediaSession en la pantalla de bloqueo</string>
   <string name="morphe_music_lyrics_miniplayer_title">Mostrar letras en el reproductor en miniatura</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Orden de visualización de artista y título</string>
@@ -464,8 +460,6 @@ Cookies requeridas: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPIS
   <string name="morphe_music_lyrics_about_summary">"Las letras se buscan por título de pista y artista, por lo que una pista con metadatos inusuales puede no encontrar nada o encontrar la versión incorrecta. También puedes probar el botón 'Actualizar' para cambiar de versión manualmente. Cuando no se encuentran letras de terceros, se muestran las letras integradas o incrustadas en su lugar. Los proveedores marcados con * requieren un token para activarse. No siempre se consultan todos los proveedores activados en el orden que establezcas, sino que responden según su velocidad"</string>
   <string name="morphe_music_lyrics_hide_info_title">Ocultar línea de créditos</string>
   <string name="morphe_music_lyrics_hide_info_summary">Oculta la línea de créditos que se muestra debajo de las letras</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Intercambiar traducción y romanización</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Activado coloca la romanización debajo de las letras y la traducción arriba; desactivado mantiene la romanización arriba y la traducción abajo</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Traducción compatible con OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Utiliza una API personalizada compatible con OpenAI para la traducción y romanización en lugar de Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Ajustes de traducción con IA</string>

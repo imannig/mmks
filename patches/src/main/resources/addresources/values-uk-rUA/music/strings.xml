@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ YouTube Music 8.x - плавний перехід працює лише на в�
   <string name="morphe_music_lyrics_saved">Збережено</string>
   <string name="morphe_music_lyrics_word_sync_title">Підсвічувати синхронізовані слова або склади</string>
   <string name="morphe_music_lyrics_word_sync_summary">Надавати пріоритет тексту пісні по словах, коли доступно. Якщо текст пісні містить синхронізацію по словах, підсвічує кожне слово або склад у такт музиці</string>
-  <string name="morphe_music_lyrics_hide_played_title">Приховувати відтворені рядки тексту</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Приховувати рядки тексту пісні над рядком, що зараз відтворюється</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Приховувати ще не відтворені рядки тексту</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Приховувати рядки тексту пісні під рядком, що зараз відтворюється</string>
   <string name="morphe_music_lyrics_mediasession_title">Показувати текст пісні MediaSession на екрані блокування</string>
   <string name="morphe_music_lyrics_miniplayer_title">Показувати текст пісні в мініплеєрі</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Порядок відображення виконавця та назви</string>
@@ -464,8 +460,6 @@ YouTube Music 8.x - плавний перехід працює лише на в�
   <string name="morphe_music_lyrics_about_summary">"Тексти пісень шукаються за назвою треку та виконавцем, тож трек з нетиповими метаданими може нічого не знайти або знайти неправильну версію. Ви також можете спробувати кнопку оновлення, щоб вручну перемкнути версію. Якщо сторонні тексти пісень не знайдено, замість них показуються вбудовані тексти. Постачальники, позначені *, потребують токена для увімкнення. Усі увімкнені постачальники не завжди запитуються у вашому порядку, а відповідають залежно від їхньої швидкості"</string>
   <string name="morphe_music_lyrics_hide_info_title">Приховати рядок з інформацією про авторів</string>
   <string name="morphe_music_lyrics_hide_info_summary">Приховати рядок з інформацією про авторів, що показується під текстом пісні</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Поміняти місцями переклад і романізацію</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Увімкнено - романізація під текстом, переклад над текстом; вимкнено - романізація над текстом, переклад під текстом</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-сумісний переклад</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Використовувати спеціальний OpenAI-сумісний API для перекладу та романізації замість Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Налаштування перекладу ШІ</string>

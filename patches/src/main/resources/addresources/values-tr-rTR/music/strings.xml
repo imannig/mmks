@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Gerekli çerezler: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISI
   <string name="morphe_music_lyrics_saved">Kaydedildi</string>
   <string name="morphe_music_lyrics_word_sync_title">Senkronize kelimeleri veya heceleri vurgula</string>
   <string name="morphe_music_lyrics_word_sync_summary">Mümkün olduğunda kelime kelime şarkı sözlerine öncelik ver. Şarkı sözleri kelime zamanlaması içeriyorsa, her kelimeyi veya heceyi müzikle eş zamanlı olarak vurgular</string>
-  <string name="morphe_music_lyrics_hide_played_title">Satırı gizle</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Şu anda çalınan satırın üzerindeki şarkı sözü satırlarını gizle</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Okunmamış şarkı sözlerini gizle</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Şu anda çalınan satırın altındaki şarkı sözlerini gizle</string>
   <string name="morphe_music_lyrics_mediasession_title">Kilit ekranında MediaSession şarkı sözlerini göster</string>
   <string name="morphe_music_lyrics_miniplayer_title">Mini oynatıcıda şarkı sözlerini göster</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Sanatçı ve Başlık görüntüleme sırası</string>
@@ -464,8 +460,6 @@ Gerekli çerezler: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPISI
   <string name="morphe_music_lyrics_about_summary">"Şarkı sözleri parça adına ve sanatçıya göre aranır; bu nedenle olağandışı meta verilere sahip bir parça hiçbir şey bulamayabilir veya yanlış sürümü bulabilir. Ayrıca sürümleri manuel olarak değiştirmek için yenile düğmesini deneyebilirsiniz. Üçüncü taraf şarkı sözü bulunamadığında, bunun yerine yerleşik veya gömülü şarkı sözleri gösterilir. * ile işaretlenen sağlayıcılar etkinleştirmek için bir token gerektirir. Etkin sağlayıcıların tümü her zaman sizin sıranıza göre istenmez, hızlarına göre yanıt verirler"</string>
   <string name="morphe_music_lyrics_hide_info_title">Yenile</string>
   <string name="morphe_music_lyrics_hide_info_summary">Şarkı sözlerinin altında gösterilen künye satırını gizle</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Çeviri ve okunuşun yerini değiştir</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">AÇIK olduğunda okunuşu şarkı sözlerinin altına ve çeviriyi üstüne yerleştirir; KAPALI olduğunda okunuşu üstte ve çeviriyi altta tutar</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI uyumlu Çeviri</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Çeviri ve romanizasyon için Google Çeviri yerine özel OpenAI uyumlu bir API kullanın</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI Çeviri Ayarları</string>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Second \"item\" text"</string>
   <string name="morphe_music_lyrics_saved">সংরক্ষিত হয়েছে</string>
   <string name="morphe_music_lyrics_word_sync_title">সিঙ্ক্রোনাইজড শব্দ বা সিলেবল হাইলাইট করুন</string>
   <string name="morphe_music_lyrics_word_sync_summary">যখন পাওয়া যায়, শব্দে শব্দে লিরিক্সকে অগ্রাধিকার দিন। যখন লিরিক্সে শব্দের সময় থাকে, তখন সঙ্গীতের সাথে সময় মিলিয়ে প্রতিটি শব্দ বা সিলেবল হাইলাইট হয়।</string>
-  <string name="morphe_music_lyrics_hide_played_title">লিরিক্স লুকান […]</string>
-  <string name="morphe_music_lyrics_hide_played_summary">বর্তমানে বাজতে থাকা লাইনের উপরের লিরিক্সের লাইনগুলো লুকান</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">যে লিরিক্স এখনো বাজানো হয়নি সেগুলো লুকান</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">বর্তমানে চলমান […] স্ক্রিনের নিচে লিরিক্সের লাইন লুকান</string>
   <string name="morphe_music_lyrics_mediasession_title">লক স্ক্রিনে MediaSession-এর লিরিক্স দেখান</string>
   <string name="morphe_music_lyrics_miniplayer_title">মিনিপ্লেয়ার লিরিক্স দেখান</string>
   <string name="morphe_music_lyrics_display_artist_first_title">শিল্পী ও শিরোনাম প্রদর্শন […] ON \"Artist - Title\" এবং OFF \"Title - Artist\" লিরিক্স অনুসন্ধানকে প্রভাবিত করে না।</string>
@@ -459,8 +455,6 @@ Second \"item\" text"</string>
   <string name="morphe_music_lyrics_about_summary">"লিরিক্সের নিচে দেখানো ক্রেডিট লাইনটি লুকান"</string>
   <string name="morphe_music_lyrics_hide_info_title">অনুবাদ এবং রোমানাইজেশন অদলবদল করুন</string>
   <string name="morphe_music_lyrics_hide_info_summary">ON রোমানাইজেশনকে লিরিক্সের নিচে এবং অনুবাদকে উপরে রাখে; OFF রোমানাইজেশনকে উপরে এবং অনুবাদকে নিচে রাখে</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">অনুবাদ এবং রোমানাইজেশন অদলবদল করুন</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">চালু অবস্থায় রোমানাইজেশন গানের কথার নীচে এবং অনুবাদ উপরে থাকে; বন্ধ অবস্থায় রোমানাইজেশন উপরে এবং অনুবাদ নীচে থাকে</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-সামঞ্জস্যপূর্ণ অনুবাদ</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">অনুবাদ এবং রোমানাইজেশনের জন্য Google Translate-এর বদলে একটি কাস্টম OpenAI-সামঞ্জস্যপূর্ণ API ব্যবহার করুন</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI অনুবাদ সেটিংস</string>

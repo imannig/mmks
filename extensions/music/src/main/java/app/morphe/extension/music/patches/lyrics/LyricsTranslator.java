@@ -36,6 +36,14 @@ public final class LyricsTranslator {
         return Locale.getDefault().getLanguage();
     }
 
+    public static String getEffectiveTargetLanguage() {
+        String target = Settings.LYRICS_TRANSLATE_TARGET_LANG.get().trim();
+        if (!target.isEmpty() && !"app".equalsIgnoreCase(target)) {
+            return target;
+        }
+        return deviceLanguage();
+    }
+
     @Nullable
     private static List<String> embeddedTranslation(Lyrics lyrics, String target, int lineCount) {
         Map<String, List<LyricsLine>> byLang = lyrics.translations();
@@ -94,7 +102,7 @@ public final class LyricsTranslator {
             lines.add(line.text());
         }
 
-        String language = deviceLanguage();
+        String language = getEffectiveTargetLanguage();
 
         List<String> embedded = embeddedTranslation(lyrics, language, lines.size());
         if (embedded != null) {
@@ -103,23 +111,77 @@ public final class LyricsTranslator {
         }
 
         executor.execute(() -> {
-            if (Settings.LYRICS_USE_AI_TRANSLATION.get()) {
-                String baseUrl = Settings.LYRICS_AI_BASE_URL.get();
-                String apiToken = Settings.LYRICS_AI_API_TOKEN.get();
-                String model = Settings.LYRICS_AI_MODEL.get();
+            String provider = Settings.LYRICS_TRANSLATION_PROVIDER.get().toLowerCase(Locale.ROOT);
+            boolean useAiSetting = Settings.LYRICS_USE_AI_TRANSLATION.get();
+
+            if (!"google".equals(provider) || useAiSetting) {
+                final String effectiveProvider = ("google".equals(provider) && useAiSetting)
+                        ? "openai_compatible"
+                        : provider;
 
                 List<String> aiCached = LyricsCache.getTranslationAI(
                         track, source, language, lines.size());
                 if (aiCached != null) {
-                    Utils.runOnMainThread(() -> callback.onTranslated(aiCached, false, true, model));
+                    Utils.runOnMainThread(() -> callback.onTranslated(aiCached, false, true, effectiveProvider));
                     return;
                 }
 
-                List<String> aiResult = aiTranslate(lines, language, track.title(),
-                        track.artist(), baseUrl, apiToken, model);
-                if (aiResult != null) {
+                List<String> aiResult = null;
+                String modelUsed = null;
+
+                switch (effectiveProvider) {
+                    case "gemini": {
+                        String apiKey = Settings.LYRICS_GEMINI_API_KEY.get();
+                        String model = Settings.LYRICS_GEMINI_MODEL.get();
+                        if (!apiKey.isEmpty()) {
+                            aiResult = GeminiClient.translate(lines, language, track.title(), track.artist(), apiKey, model);
+                            modelUsed = model;
+                        }
+                        break;
+                    }
+                    case "openrouter": {
+                        String apiKey = Settings.LYRICS_OPENROUTER_API_KEY.get();
+                        String model = Settings.LYRICS_OPENROUTER_MODEL.get();
+                        if (!apiKey.isEmpty()) {
+                            aiResult = aiTranslate(lines, language, track.title(), track.artist(),
+                                    "https://openrouter.ai/api/v1/chat/completions", apiKey, model);
+                            modelUsed = model;
+                        }
+                        break;
+                    }
+                    case "openai": {
+                        String apiKey = Settings.LYRICS_OPENAI_API_KEY.get();
+                        String model = Settings.LYRICS_OPENAI_MODEL.get();
+                        if (!apiKey.isEmpty()) {
+                            aiResult = aiTranslate(lines, language, track.title(), track.artist(),
+                                    "https://api.openai.com/v1/chat/completions", apiKey, model);
+                            modelUsed = model;
+                        }
+                        break;
+                    }
+                    case "openai_compatible": {
+                        String baseUrl = Settings.LYRICS_AI_BASE_URL.get();
+                        String apiToken = Settings.LYRICS_AI_API_TOKEN.get();
+                        String model = Settings.LYRICS_AI_MODEL.get();
+                        aiResult = aiTranslate(lines, language, track.title(), track.artist(), baseUrl, apiToken, model);
+                        modelUsed = model;
+                        break;
+                    }
+                    case "deepl": {
+                        String apiKey = Settings.LYRICS_DEEPL_API_KEY.get();
+                        if (!apiKey.isEmpty()) {
+                            aiResult = DeepLClient.translate(lines, language, apiKey);
+                            modelUsed = "DeepL";
+                        }
+                        break;
+                    }
+                }
+
+                if (aiResult != null && !aiResult.isEmpty()) {
                     LyricsCache.putTranslationAI(track, source, language, aiResult);
-                    Utils.runOnMainThread(() -> callback.onTranslated(aiResult, false, true, model));
+                    final List<String> finalAiResult = aiResult;
+                    final String finalModel = modelUsed;
+                    Utils.runOnMainThread(() -> callback.onTranslated(finalAiResult, false, true, finalModel));
                     return;
                 }
             }
@@ -190,22 +252,16 @@ public final class LyricsTranslator {
         return out;
     }
 
-    private static String buildTranslatePrompt(List<String> lines, String targetLang,
+    static String buildTranslatePrompt(List<String> lines, String targetLang,
             String title, String artist) {
         StringBuilder sb = new StringBuilder(200 + lines.size() * 50);
-        sb.append("You are a professional lyrics translator. Translate each line below to ")
-                .append(targetLang).append(", preserving the emotional tone and poetic style of the original.\n");
+        sb.append("Translate each line below to ").append(targetLang)
+                .append(", preserving the poetic style and meaning.\n");
         sb.append("Song: ").append(title).append(" by ").append(artist).append("\n\n");
-        sb.append("Output format: Number every translated line, like:\n");
-        sb.append("1. first translation\n");
-        sb.append("2. second translation\n\n");
-        sb.append("CRITICAL RULES:\n");
-        sb.append("- Output exactly ").append(lines.size()).append(" numbered lines (same as input count)\n");
-        sb.append("- Number format: \"N. translated text\" (number, period, space, text)\n");
-        sb.append("- Do NOT include the original lyrics in your output\n");
-        sb.append("- Do NOT use \"Line N:\" format\n");
-        sb.append("- If the lyrics are already in ").append(targetLang)
-                .append(", output one \"SKIP\" per line\n\n");
+        sb.append("Rules:\n");
+        sb.append("- Output exactly ").append(lines.size()).append(" numbered lines (format: 1. <translated text>)\n");
+        sb.append("- Do not include the original lyrics\n");
+        sb.append("- If already in ").append(targetLang).append(", output SKIP\n\n");
         for (String line : lines) {
             sb.append(line).append("\n");
         }

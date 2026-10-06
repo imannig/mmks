@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -420,10 +420,6 @@ Krævede cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID"</string>
   <string name="morphe_music_lyrics_saved">Gemt</string>
   <string name="morphe_music_lyrics_word_sync_title">Fremhæv synkroniserede ord eller stavelser</string>
   <string name="morphe_music_lyrics_word_sync_summary">Prioritér ord-for-ord-tekster, når de er tilgængelige. Når teksterne har ord-timing, fremhæves hvert ord eller stavelse i takt med musikken.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Skjul […] linje</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Skjul sangtekstlinjer over den aktuelt afspillede linje</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Skjul ikke-afspillede tekster</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Skjul tekstlinjer under den aktuelt afspillede […] skærm</string>
   <string name="morphe_music_lyrics_mediasession_title">Vis MediaSession-sangtekster på låseskærmen</string>
   <string name="morphe_music_lyrics_miniplayer_title">Vis Miniplayer-tekster</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Visning af kunstner og titel […] TIL \"Kunstner - Titel\" og FRA \"Titel - Kunstner\" Påvirker ikke tekstsøgning.</string>
@@ -458,8 +454,6 @@ Krævede cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID"</string>
   <string name="morphe_music_lyrics_about_summary">"Teksterne slås op efter titel og kunstner, […] Du kan også prøve opdateringsknappen for manuelt at skifte versioner. […] Alle aktiverede udbydere bliver ikke altid forespurgt i din rækkefølge, men svarer ud fra deres hastighed."</string>
   <string name="morphe_music_lyrics_hide_info_title">Skjul kreditlinje</string>
   <string name="morphe_music_lyrics_hide_info_summary">Skjul kreditlinjen, der vises under teksterne</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Byt om på oversættelse og romanisering</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">TIL sætter romanisering under teksterne og oversættelse over; FRA beholder romanisering over og oversættelse under.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-kompatibel oversættelse</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Brug en tilpasset OpenAI-kompatibel API til oversættelse og romanisering i stedet for Google Oversæt</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI-oversættelsesindstillinger</string>

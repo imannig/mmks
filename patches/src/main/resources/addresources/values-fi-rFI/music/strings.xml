@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Vaaditut evästeet: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPIS
   <string name="morphe_music_lyrics_saved">Tallennettu</string>
   <string name="morphe_music_lyrics_word_sync_title">Korosta synkronoidut sanat tai tavut</string>
   <string name="morphe_music_lyrics_word_sync_summary">Priorisoi sana sanalta -lyriikat, kun ne ovat saatavilla. Kun lyriikoissa on sanan ajoitus, korostaa jokaisen sanan tai tavun musiikin tahdissa</string>
-  <string name="morphe_music_lyrics_hide_played_title">Piilota soitetut lyriikat</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Piilota lyriikkarivit nykyisen soittorivin yläpuolelta</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Piilota soittamattomat lyriikat</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Piilota lyriikkarivit nykyisen soittorivin alapuolelta</string>
   <string name="morphe_music_lyrics_mediasession_title">Näytä MediaSession-lyriikat lukitusnäytöllä</string>
   <string name="morphe_music_lyrics_miniplayer_title">Näytä minisoittimen lyriikat</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Artistin ja kappaleen nimen näyttöjärjestys</string>
@@ -459,8 +455,6 @@ Vaaditut evästeet: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPIS
   <string name="morphe_music_lyrics_about_summary">"Lyriikoita haetaan kappaleen nimen ja artistin perusteella, joten epätavallisia metatietoja sisältävä kappale voi jättää löytämättä tai löytää väärän version. Voit myös kokeilla päivitä-painiketta vaihtaaksesi versioita manuaalisesti. Kun kolmannen osapuolen lyriikoita ei löydy, näytetään sisäänrakennetut tai upotetut lyriikat. Palveluntarjoajat, jotka on merkitty * vaativat tunnuksen käyttöönottoon. Kaikkia käytössä olevia palveluntarjoajia ei aina pyydetä järjestyksessäsi, vaan ne vastaavat nopeutensa mukaan"</string>
   <string name="morphe_music_lyrics_hide_info_title">Piilota tekijätietorivi</string>
   <string name="morphe_music_lyrics_hide_info_summary">Piilota lyriikoiden alla näkyvä tekijätietorivi</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Vaihda käännöksen ja romanisoinnin paikkaa</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">PÄÄLLÄ asettaa romanisoinnin lyriikoiden alle ja käännöksen yläpuolelle; POIS pitää romanisoinnin yläpuolella ja käännöksen alapuolella</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-yhteensopiva käännös</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Käytä mukautettua OpenAI-yhteensopivaa API:a sanoitusten kääntämiseen ja latinointiin Google Translate -palvelun sijaan</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Tekoälykäännösasetukset</string>

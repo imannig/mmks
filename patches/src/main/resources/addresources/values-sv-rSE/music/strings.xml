@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -421,10 +421,6 @@ Obligatoriska cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_saved">Sparad</string>
   <string name="morphe_music_lyrics_word_sync_title">Markera synkroniserade ord eller stavelser</string>
   <string name="morphe_music_lyrics_word_sync_summary">Prioritera ord-för-ord-text när det finns. När texten har ordtajming markeras varje ord eller stavelse i takt med musiken.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Dölj […] raden.</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Dölj textrader ovanför den raden som spelas för tillfället</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Dölj ospelade texter.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Dölj textraderna under den rad som spelas.</string>
   <string name="morphe_music_lyrics_mediasession_title">Visa MediaSession-text på låsskärmen</string>
   <string name="morphe_music_lyrics_miniplayer_title">Visa text i minispelaren</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Visning av artist och titel […] MediaSession. PÅ \"Artist – Titel\" och AV \"Titel – Artist\". Påverkar inte textsökning.</string>
@@ -459,8 +455,6 @@ Obligatoriska cookies: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_about_summary">"Texter slås upp efter spårnamn och artist. […] Du kan också prova uppdateringsknappen för att byta version manuellt. […] Alla aktiverade leverantörer efterfrågas inte alltid i din ordning, utan svarar baserat på deras hastighet."</string>
   <string name="morphe_music_lyrics_hide_info_title">Dölj kreditraden</string>
   <string name="morphe_music_lyrics_hide_info_summary">Dölj kreditraden som visas under texten.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Växla mellan översättning och romanisering</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">PÅ placerar romaniseringen under texten och översättningen ovanför; AV behåller romaniseringen ovanför och översättningen nedanför.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">OpenAI-kompatibel översättning</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Använd ett anpassat OpenAI-kompatibelt API för översättning och romanisering istället för Google Översätt</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">AI-översättningsinställningar</string>

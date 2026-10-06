@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -409,10 +409,6 @@ Cookie-uri necesare: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPI
   <string name="morphe_music_lyrics_saved">Salvat</string>
   <string name="morphe_music_lyrics_word_sync_title">Evidențiați cuvintele sau silabele sincronizate</string>
   <string name="morphe_music_lyrics_word_sync_summary">Nu s-a putut face romanizarea versurilor.</string>
-  <string name="morphe_music_lyrics_hide_played_title">Ascundeți versurile.</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Ascundeți rândurile de versuri de mai jos.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Ascundeți versurile necunoscute.</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Ascundeți rândurile de versuri de mai jos.</string>
   <string name="morphe_music_lyrics_mediasession_title">Afișați versurile MediaSession pe ecranul de blocare.</string>
   <string name="morphe_music_lyrics_miniplayer_title">Afișați versurile miniplayer.</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Afișați ordinea artistului și a titlului.</string>
@@ -447,8 +443,6 @@ Cookie-uri necesare: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PAPI
   <string name="morphe_music_lyrics_about_summary">"Redare în curs de pe alt dispozitiv."</string>
   <string name="morphe_music_lyrics_hide_info_title">Redare în curs pe acest dispozitiv.</string>
   <string name="morphe_music_lyrics_hide_info_summary">Redare în curs pe un alt dispozitiv.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Redare în curs pe acest dispozitiv.</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Redare în curs pe un alt dispozitiv.</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Traducere compatibilă OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Folosește un API personalizat compatibil OpenAI pentru traducere și romanizare în loc de Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Setări traducere AI</string>

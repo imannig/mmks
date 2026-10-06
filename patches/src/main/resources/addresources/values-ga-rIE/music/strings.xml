@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
@@ -426,10 +426,6 @@ Fianáin riachtanacha: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_saved">Sábháilte</string>
   <string name="morphe_music_lyrics_word_sync_title">Aibhsigh focail nó siollaí sioncronaithe</string>
   <string name="morphe_music_lyrics_word_sync_summary">Tabhair tosaíocht do liricí a chuirtear i láthair focal ar fhocal nuair a bhíonn siad ar fáil. Nuair a bhíonn uainiú focal ag gabháil leis na liricí, déantar gach focal nó siolla a aibhsiú i gcomhthráth leis an gceol</string>
-  <string name="morphe_music_lyrics_hide_played_title">Folaigh na liricí a seinneadh</string>
-  <string name="morphe_music_lyrics_hide_played_summary">Folaigh línte na liricí os cionn na líne atá á seinm faoi láthair</string>
-  <string name="morphe_music_lyrics_hide_unplayed_title">Folaigh liricí nár seinneadh</string>
-  <string name="morphe_music_lyrics_hide_unplayed_summary">Folaigh línte na liricí faoin líne atá á seinm faoi láthair</string>
   <string name="morphe_music_lyrics_mediasession_title">Taispeáin liricí MediaSession ar an scáileán glasála</string>
   <string name="morphe_music_lyrics_miniplayer_title">Taispeáin liricí an mhionimreora</string>
   <string name="morphe_music_lyrics_display_artist_first_title">Ord taispeána an ealaíontóra agus an teidil</string>
@@ -464,8 +460,6 @@ Fianáin riachtanacha: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1PA
   <string name="morphe_music_lyrics_about_summary">"Déantar cuardach ar liricí de réir theideal an riain agus an ealaíontóra; dá bhrí sin, d’fhéadfadh sé nach bhfaighfí aon rud, nó go bhfaighfí an leagan mícheart, i gcás riain a bhfuil meiteashonraí neamhghnácha ag baint leis. Is féidir leat an cnaipe athnuachana a úsáid freisin chun leaganacha a athrú de láimh. Mura bhfaightear aon liricí ó sholáthraithe tríú páirtí, taispeántar liricí ionsuite nó leabaithe ina n-áit. Teastaíonn comhartha chun na soláthraithe a bhfuil an comhartha * ag gabháil leo a chumasú. Ní iarrtar gach soláthraí atá cumasaithe i gcónaí i do ordú, ach freagraíonn siad bunaithe ar a luas"</string>
   <string name="morphe_music_lyrics_hide_info_title">Folaigh an líne chreidmheasa</string>
   <string name="morphe_music_lyrics_hide_info_summary">Folaigh an líne aitheantais a thaispeántar faoi na liricí</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_title">Malartaigh an t-aistriúchán agus an rómánú</string>
-  <string name="morphe_music_lyrics_swap_trans_roma_summary">Cuireann AR an rómánú faoi na liricí agus an t-aistriúchán os a gcionn; coinníonn AS an rómánú os cionn na liricí agus an t-aistriúchán fúthu</string>
   <string name="morphe_music_lyrics_use_ai_translation_title">Aistriúchán comhoiriúnach le OpenAI</string>
   <string name="morphe_music_lyrics_use_ai_translation_summary">Úsáid API comhoiriúnach le OpenAI saincheaptha le haghaidh aistriúcháin agus rómhánúcháin in ionad Google Translate</string>
   <string name="morphe_music_lyrics_ai_config_dialog_title">Socruithe Aistriúcháin AI</string>

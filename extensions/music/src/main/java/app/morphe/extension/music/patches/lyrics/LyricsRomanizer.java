@@ -130,6 +130,82 @@ public final class LyricsRomanizer {
         return false;
     }
 
+    private static final String[] HANGUL_CHOSEONG = {
+        "g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s",
+        "ss", "", "j", "jj", "ch", "k", "t", "p", "h"
+    };
+
+    private static final String[] HANGUL_JUNGSEONG = {
+        "a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o",
+        "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu",
+        "eu", "ui", "i"
+    };
+
+    private static final String[] HANGUL_JONGSEONG = {
+        "", "k", "k", "ks", "n", "nj", "nh", "t", "l", "lk",
+        "lm", "lb", "ls", "lt", "lp", "lh", "m", "p", "ps",
+        "t", "t", "ng", "t", "t", "k", "t", "p", "t"
+    };
+
+    private static final String[] HANGUL_JONGSEONG_LIAISON = {
+        "", "g", "kk", "ks", "n", "nj", "nh", "d", "r", "lg",
+        "lm", "lb", "ls", "lt", "lp", "lh", "m", "b", "ps",
+        "s", "ss", "ng", "j", "ch", "k", "t", "p", "h"
+    };
+
+    private static final int HANGUL_BASE = 0xAC00;
+    private static final int HANGUL_END = 0xD7A3;
+
+    public static String romanizeHangulChar(char c, @Nullable Character nextC) {
+        int code = (int) c;
+        if (code < HANGUL_BASE || code > HANGUL_END) {
+            return String.valueOf(c);
+        }
+        int offset = code - HANGUL_BASE;
+        int choseong = offset / 588;
+        int jungseong = (offset % 588) / 28;
+        int jongseong = offset % 28;
+
+        String initial = HANGUL_CHOSEONG[choseong];
+        String vowel = HANGUL_JUNGSEONG[jungseong];
+        String fin = "";
+        if (jongseong > 0) {
+            if (nextC != null) {
+                int nextCode = (int) nextC;
+                if (nextCode >= HANGUL_BASE && nextCode <= HANGUL_END) {
+                    int nextOffset = nextCode - HANGUL_BASE;
+                    int nextChoseong = nextOffset / 588;
+                    if (nextChoseong == 11) {
+                        String l = HANGUL_JONGSEONG_LIAISON[jongseong];
+                        fin = (l != null && !l.isEmpty()) ? l : HANGUL_JONGSEONG[jongseong];
+                    } else {
+                        fin = HANGUL_JONGSEONG[jongseong];
+                    }
+                } else {
+                    fin = HANGUL_JONGSEONG[jongseong];
+                }
+            } else {
+                fin = HANGUL_JONGSEONG[jongseong];
+            }
+        }
+        return initial + vowel + fin;
+    }
+
+    public static String romanizeHangul(@Nullable String text) {
+        if (text == null || text.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c >= HANGUL_BASE && c <= HANGUL_END) {
+                Character nextC = (i + 1 < text.length()) ? text.charAt(i + 1) : null;
+                sb.append(romanizeHangulChar(c, nextC));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
     public static boolean containsCyrillic(@Nullable CharSequence text) {
         if (text == null || text.length() == 0) return false;
         for (int i = 0; i < text.length(); ) {

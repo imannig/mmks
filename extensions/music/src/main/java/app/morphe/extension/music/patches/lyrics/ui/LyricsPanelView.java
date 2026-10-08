@@ -187,8 +187,8 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
     private static final long BUTTON_STATE_FADE_MILLISECONDS = 150;
     private static final ArgbEvaluator BUTTON_COLOR_EVALUATOR = new ArgbEvaluator();
 
-    /** Alpha channel for the unsung (not-yet-sung) word color (0.35f alpha = 0x59). */
-    private static final int UNSUNG_ALPHA = 0x59;
+    /** Alpha channel for the unsung (not-yet-sung) word color (0x78 approx 47% alpha). */
+    private static final int UNSUNG_ALPHA = 0x78;
 
     /** Icons of the buttons the app draws under its own lyrics. */
     private static final String APP_TRANSLATE_ICON = "yt_outline_experimental_translate_vd_theme_24";
@@ -550,6 +550,11 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             return wordUnits != null && !wordUnits.isEmpty();
         }
 
+        private boolean isRightAligned() {
+            int abs = Gravity.getAbsoluteGravity(getGravity(), getLayoutDirection());
+            return (abs & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.RIGHT;
+        }
+
         private void layoutWordUnits(int availableWidth) {
             if (wordUnits == null || wordUnits.isEmpty() || availableWidth <= 0) {
                 return;
@@ -560,22 +565,22 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             cachedLayoutWidth = availableWidth;
 
             Paint mainP = getPaint();
-            romajiPaint.setTextSize(mainP.getTextSize() * ROMAJI_RELATIVE_SIZE);
-            romajiPaint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+            romajiPaint.setTextSize(mainP.getTextSize() * 0.54f);
+            romajiPaint.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
 
             unsungKanjiPaint.set(mainP);
             unsungKanjiPaint.clearShadowLayer();
             unsungKanjiPaint.setFakeBoldText(false);
             sungKanjiPaint.set(mainP);
             sungKanjiPaint.clearShadowLayer();
-            sungKanjiPaint.setFakeBoldText(true);
+            sungKanjiPaint.setFakeBoldText(false);
 
             unsungRomajiPaint.set(romajiPaint);
             unsungRomajiPaint.clearShadowLayer();
             unsungRomajiPaint.setFakeBoldText(false);
             sungRomajiPaint.set(romajiPaint);
             sungRomajiPaint.clearShadowLayer();
-            sungRomajiPaint.setFakeBoldText(true);
+            sungRomajiPaint.setFakeBoldText(false);
 
             Paint.FontMetrics kanjiFm = mainP.getFontMetrics();
             float kanjiHeight = kanjiFm.descent - kanjiFm.ascent;
@@ -665,10 +670,9 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                     u.wordStartMs = u.startMs;
                     u.wordEndMs = u.endMs;
                     u.wordCenterX = (u.unitLeft + u.unitRight) / 2f;
-                    u.wordCenterY = (u.lineTop + u.lineBottom) / 2f;
-                    u.kanjiCenterX = u.wordCenterX;
+                    u.kanjiCenterX = u.kanjiX + u.kanjiWidth / 2f;
                     u.kanjiCenterY = u.wordCenterY;
-                    u.romajiCenterX = u.wordCenterX;
+                    u.romajiCenterX = u.romajiX + u.romajiWidth / 2f;
                     u.romajiCenterY = u.wordCenterY;
 
                     i++;
@@ -713,7 +717,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
                         final float spacing;
                         if (LyricsRomanizer.containsHangul(u.kanji)) {
-                            spacing = u.endsWithSpace ? (baseSpaceWidth * 0.65f) : 0f;
+                            spacing = u.endsWithSpace ? baseSpaceWidth : 0f;
                         } else if (LyricsRomanizer.containsCyrillic(u.kanji) || LyricsRomanizer.containsArabic(u.kanji)
                                 || LyricsRomanizer.containsHebrew(u.kanji) || LyricsRomanizer.containsGreek(u.kanji)
                                 || LyricsRomanizer.containsDevanagari(u.kanji) || LyricsRomanizer.containsThai(u.kanji)) {
@@ -733,9 +737,9 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         u.kanjiY = curY + kanjiBaseline;
                         u.romajiY = curY + kanjiHeight + romajiMargin + romajiBaseline;
 
-                        u.kanjiCenterX = curX + pillarW / 2f;
+                        u.kanjiCenterX = curX + u.kanjiWidth / 2f;
                         u.kanjiCenterY = curY + singleLineHeight / 2f;
-                        u.romajiCenterX = curX + pillarW / 2f;
+                        u.romajiCenterX = curX + u.romajiWidth / 2f;
                         u.romajiCenterY = curY + singleLineHeight / 2f;
 
                         if (!u.romaji.isEmpty()) {
@@ -769,7 +773,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 }
             }
 
-            final boolean isRightAligned = (getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.END;
+            final boolean isRightAligned = isRightAligned();
             if (isRightAligned && currentLine >= 0) {
                 float[] lineWidths = new float[currentLine + 1];
                 for (int j = 0; j < wordUnits.size(); j++) {
@@ -823,7 +827,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                                         float kanjiHeight, float kanjiBaseline,
                                         float romajiHeight, float romajiBaseline,
                                         float baseSpaceWidth, boolean hasRomaji) {
-            final boolean isRightAligned = (getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK) != Gravity.START;
+            final boolean isRightAligned = isRightAligned();
 
             // 1. Line-wrap Arabic words
             float arabicLineSpacing = kanjiHeight * 1.25f;
@@ -1027,7 +1031,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             }
 
             canvas.save();
-            float pivotX = ((getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.END)
+            float pivotX = isRightAligned()
                     ? (getWidth() - getCompoundPaddingRight())
                     : getCompoundPaddingLeft();
             float pivotY = getHeight() / 2f;
@@ -1041,7 +1045,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             // Setup colors
             int baseSung = (sungColor != 0) ? sungColor : lineTextColor();
             sungKanjiPaint.setColor(baseSung);
-            sungKanjiPaint.setFakeBoldText(true);
+            sungKanjiPaint.setFakeBoldText(false);
 
             final int sungRomajiColor = Color.argb(
                     Math.round(255 * 0.85f),
@@ -1049,7 +1053,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                     Color.green(baseSung),
                     Color.blue(baseSung));
             sungRomajiPaint.setColor(sungRomajiColor);
-            sungRomajiPaint.setFakeBoldText(true);
+            sungRomajiPaint.setFakeBoldText(false);
 
             int baseUnsung = (active && lineHasTimings)
                     ? ((unsungColor != 0) ? unsungColor : unsungWordColor())
@@ -1068,19 +1072,21 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
             final int wordCount = wordUnits.size();
 
-            // Layer 1 (Inactive Base): Draw base text
+            // Layer 1 (Base Unsung Text): Draw all words on active line in unsung color
             final long baseLivePos = (active && lineHasTimings && !allSung) ? getLiveClockPositionMs() : Long.MIN_VALUE;
             for (int i = 0; i < wordCount; i++) {
                 WordUnit u = wordUnits.get(i);
                 final boolean timed = baseLivePos != Long.MIN_VALUE && u.startMs != LyricsLine.NO_TIME;
-                // Past words stay solid white: drawn by layer 2 only, never dimmed again.
-                if (timed && baseLivePos >= u.endMs && baseLivePos - u.endMs > WORD_SETTLE_MS) {
+                if (timed && baseLivePos >= u.endMs + WORD_SETTLE_MS) {
                     continue;
                 }
-                final float factor = timed ? wordActiveFactor(u.startMs, u.endMs, baseLivePos) : 0f;
+                final long dur = Math.max(1L, u.endMs - u.startMs);
+                final boolean isGrowable = dur >= 1000L;
+                final float factor = (timed && isGrowable) ? wordActiveFactor(u.startMs, u.endMs, baseLivePos) : 0f;
+
                 canvas.save();
                 if (factor > 0f) {
-                    applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, (u.endMs - u.startMs));
+                    applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
                 }
                 canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, unsungKanjiPaint);
                 canvas.restore();
@@ -1088,22 +1094,24 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
                     canvas.save();
                     if (factor > 0f) {
-                        applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, (u.endMs - u.startMs));
+                        applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
                     }
                     canvas.drawText(u.romaji, u.romajiX, u.romajiY, unsungRomajiPaint);
                     canvas.restore();
                 }
             }
 
-            // If line is not active, base layer is sufficient (view alpha handles depth-of-field)
+            // If line is not active, base layer is sufficient
             if (!active) {
                 drawTranslationLayout(canvas);
                 canvas.restore();
                 return;
             }
 
-            // Layer 2: Draw active highlighted text
+            // Layer 2 (Sung Highlight Layer): Draw luminous wipe across the line
             if (allSung || !lineHasTimings) {
+                sungKanjiPaint.clearShadowLayer();
+                sungRomajiPaint.clearShadowLayer();
                 for (int i = 0; i < wordCount; i++) {
                     WordUnit u = wordUnits.get(i);
                     canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
@@ -1113,70 +1121,204 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 }
             } else {
                 final long livePosMs = getLiveClockPositionMs();
+                final float fadeWidth = Math.max(Dim.dp(16f), mainP.getTextSize() * 0.70f);
 
-                // Find the single active syllable currently being sung (first word where livePosMs < u.endMs)
-                int activeWordIndex = -1;
+                int maxLineIndex = 0;
                 for (int i = 0; i < wordCount; i++) {
-                    WordUnit u = wordUnits.get(i);
-                    if (u.startMs != LyricsLine.NO_TIME && livePosMs < u.endMs) {
-                        if (livePosMs >= u.startMs) {
-                            activeWordIndex = i;
-                        }
-                        break;
-                    }
+                    maxLineIndex = Math.max(maxLineIndex, wordUnits.get(i).lineIndex);
                 }
 
-                for (int i = 0; i < wordCount; i++) {
-                    WordUnit u = wordUnits.get(i);
-                    if (u.startMs == LyricsLine.NO_TIME) {
-                        continue;
+                for (int ln = 0; ln <= maxLineIndex; ln++) {
+                    int firstIdx = -1;
+                    int lastIdx = -1;
+                    for (int i = 0; i < wordCount; i++) {
+                        if (wordUnits.get(i).lineIndex == ln) {
+                            if (firstIdx == -1) firstIdx = i;
+                            lastIdx = i;
+                        }
                     }
-                    if (activeWordIndex != -1 && i > activeWordIndex) {
-                        continue;
-                    }
-                    if (activeWordIndex == -1 && livePosMs < u.startMs) {
+                    if (firstIdx == -1) continue;
+
+                    WordUnit firstWord = wordUnits.get(firstIdx);
+                    WordUnit lastWord = wordUnits.get(lastIdx);
+                    final boolean isLineRtl = LyricsRomanizer.containsArabic(firstWord.kanji)
+                            || LyricsRomanizer.containsHebrew(firstWord.kanji);
+
+                    if (firstWord.startMs != LyricsLine.NO_TIME && livePosMs < firstWord.startMs) {
                         continue;
                     }
 
-                    final float factor = wordActiveFactor(u.startMs, u.endMs, livePosMs);
-                    final boolean isKanjiRtl = LyricsRomanizer.containsArabic(u.kanji) || LyricsRomanizer.containsHebrew(u.kanji);
+                    if (lastWord.endMs != LyricsLine.NO_TIME && livePosMs >= lastWord.endMs) {
+                        for (int i = firstIdx; i <= lastIdx; i++) {
+                            WordUnit u = wordUnits.get(i);
+                            final long dur = Math.max(1L, u.endMs - u.startMs);
+                            final boolean isGrowable = dur >= 1000L;
+                            final float factor = isGrowable ? wordActiveFactor(u.startMs, u.endMs, livePosMs) : 0f;
 
-                    // Kanji / Arabic
-                    canvas.save();
-                    if (factor > 0f) {
-                        applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, (u.endMs - u.startMs));
+                            canvas.save();
+                            if (factor > 0f) {
+                                applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
+                            }
+                            canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
+                            canvas.restore();
+
+                            if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
+                                canvas.save();
+                                if (factor > 0f) {
+                                    applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
+                                }
+                                canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                                canvas.restore();
+                            }
+                        }
+                        continue;
                     }
-                    if (i == activeWordIndex) {
-                        long dur = Math.max(1L, u.endMs - u.startMs);
-                        float progress = Math.max(0f, Math.min(1f, (float) (livePosMs - u.startMs) / (float) dur));
-                        sungKanjiPaint.setShadowLayer(Dim.dp(WORD_BLOOM_DP), 0f, 0f, WORD_BLOOM_COLOR);
-                        drawFeatheredFill(canvas, u.kanji, u.kanjiX, u.kanjiY, u.kanjiWidth,
-                                progress, sungKanjiPaint, sungKanjiPaint.getColor(), isKanjiRtl);
-                        sungKanjiPaint.clearShadowLayer();
+
+                    int activeIdx = -1;
+                    for (int i = firstIdx; i <= lastIdx; i++) {
+                        WordUnit u = wordUnits.get(i);
+                        if (u.startMs != LyricsLine.NO_TIME && livePosMs < u.endMs) {
+                            activeIdx = i;
+                            break;
+                        }
+                    }
+                    if (activeIdx == -1) activeIdx = lastIdx;
+
+                    WordUnit uActive = wordUnits.get(activeIdx);
+                    final float wiperX;
+                    if (livePosMs < uActive.startMs) {
+                        wiperX = isLineRtl ? uActive.unitRight : uActive.unitLeft;
                     } else {
-                        sungKanjiPaint.clearShadowLayer();
-                        canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
-                    }
-                    canvas.restore();
-
-                    // Romaji (always LTR)
-                    if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
-                        canvas.save();
-                        if (factor > 0f) {
-                            applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, (u.endMs - u.startMs));
-                        }
-                        if (i == activeWordIndex) {
-                            long dur = Math.max(1L, u.endMs - u.startMs);
-                            float progress = Math.max(0f, Math.min(1f, (float) (livePosMs - u.startMs) / (float) dur));
-                            sungRomajiPaint.setShadowLayer(Dim.dp(WORD_BLOOM_DP), 0f, 0f, WORD_BLOOM_COLOR);
-                            drawFeatheredFill(canvas, u.romaji, u.romajiX, u.romajiY, u.romajiWidth,
-                                    progress, sungRomajiPaint, sungRomajiPaint.getColor(), false);
-                            sungRomajiPaint.clearShadowLayer();
+                        long dur = Math.max(1L, uActive.endMs - uActive.startMs);
+                        float p = Math.max(0f, Math.min(1f, (float) (livePosMs - uActive.startMs) / (float) dur));
+                        if (isLineRtl) {
+                            float startX = uActive.unitRight;
+                            float endX = (activeIdx < lastIdx) ? wordUnits.get(activeIdx + 1).unitRight : uActive.unitLeft;
+                            wiperX = startX - p * (startX - endX);
                         } else {
-                            sungRomajiPaint.clearShadowLayer();
-                            canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                            float startX = uActive.unitLeft;
+                            float endX = (activeIdx < lastIdx) ? wordUnits.get(activeIdx + 1).unitLeft : uActive.unitRight;
+                            wiperX = startX + p * (endX - startX);
                         }
-                        canvas.restore();
+                    }
+
+                    for (int i = firstIdx; i <= lastIdx; i++) {
+                        WordUnit u = wordUnits.get(i);
+                        final long dur = Math.max(1L, u.endMs - u.startMs);
+                        final boolean isGrowable = dur >= 1000L;
+                        final float factor = isGrowable ? wordActiveFactor(u.startMs, u.endMs, livePosMs) : 0f;
+
+                        if (isGrowable && factor > 0f) {
+                            float durationSec = dur / 1000f;
+                            float glowMax = 0.45f * Math.min(1f, Math.max(0f, (durationSec - 1f) / 0.5f));
+                            int glowAlpha = Math.round(255f * glowMax * factor);
+                            if (glowAlpha > 0) {
+                                int glowColor = Color.argb(glowAlpha, 255, 255, 255);
+                                sungKanjiPaint.setShadowLayer(Dim.dp(WORD_BLOOM_DP), 0f, 0f, glowColor);
+                                sungRomajiPaint.setShadowLayer(Dim.dp(WORD_BLOOM_DP), 0f, 0f, glowColor);
+                            } else {
+                                sungKanjiPaint.clearShadowLayer();
+                                sungRomajiPaint.clearShadowLayer();
+                            }
+                        } else {
+                            sungKanjiPaint.clearShadowLayer();
+                            sungRomajiPaint.clearShadowLayer();
+                        }
+
+                        if (isLineRtl) {
+                            if (u.unitLeft >= wiperX + fadeWidth) {
+                                canvas.save();
+                                if (factor > 0f) applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
+                                canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
+                                canvas.restore();
+                            } else if (u.unitRight > wiperX - fadeWidth) {
+                                LinearGradient rtlShader = new LinearGradient(
+                                        wiperX - fadeWidth, 0f,
+                                        wiperX + fadeWidth, 0f,
+                                        baseSung & 0x00FFFFFF,
+                                        baseSung,
+                                        Shader.TileMode.CLAMP
+                                );
+                                sungKanjiPaint.setShader(rtlShader);
+                                canvas.save();
+                                if (factor > 0f) applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
+                                canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
+                                canvas.restore();
+                                sungKanjiPaint.setShader(null);
+                            }
+
+                            if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
+                                if (u.endMs != LyricsLine.NO_TIME && livePosMs >= u.endMs) {
+                                    canvas.save();
+                                    if (factor > 0f) applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
+                                    canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                                    canvas.restore();
+                                } else if (u.startMs != LyricsLine.NO_TIME && livePosMs >= u.startMs) {
+                                    float pR = Math.max(0f, Math.min(1f, (float) (livePosMs - u.startMs) / (float) dur));
+                                    float rWiperX = u.romajiX + pR * u.romajiWidth;
+                                    LinearGradient romaShader = new LinearGradient(
+                                            rWiperX - fadeWidth, 0f,
+                                            rWiperX + fadeWidth, 0f,
+                                            sungRomajiColor,
+                                            sungRomajiColor & 0x00FFFFFF,
+                                            Shader.TileMode.CLAMP
+                                    );
+                                    sungRomajiPaint.setShader(romaShader);
+                                    canvas.save();
+                                    if (factor > 0f) applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
+                                    canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                                    canvas.restore();
+                                    sungRomajiPaint.setShader(null);
+                                }
+                            }
+                        } else {
+                            if (u.unitRight <= wiperX - fadeWidth) {
+                                canvas.save();
+                                if (factor > 0f) applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
+                                canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
+                                canvas.restore();
+
+                                if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
+                                    canvas.save();
+                                    if (factor > 0f) applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
+                                    canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                                    canvas.restore();
+                                }
+                            } else if (u.unitLeft < wiperX + fadeWidth) {
+                                LinearGradient ltrShader = new LinearGradient(
+                                        wiperX - fadeWidth, 0f,
+                                        wiperX + fadeWidth, 0f,
+                                        baseSung,
+                                        baseSung & 0x00FFFFFF,
+                                        Shader.TileMode.CLAMP
+                                );
+                                sungKanjiPaint.setShader(ltrShader);
+                                canvas.save();
+                                if (factor > 0f) applyWordTransform(canvas, u.kanjiCenterX, u.kanjiCenterY, factor, dur);
+                                canvas.drawText(u.kanji, u.kanjiX, u.kanjiY, sungKanjiPaint);
+                                canvas.restore();
+                                sungKanjiPaint.setShader(null);
+
+                                if (!u.romaji.isEmpty() && u.romajiWidth > 0f) {
+                                    LinearGradient romaShader = new LinearGradient(
+                                            wiperX - fadeWidth, 0f,
+                                            wiperX + fadeWidth, 0f,
+                                            sungRomajiColor,
+                                            sungRomajiColor & 0x00FFFFFF,
+                                            Shader.TileMode.CLAMP
+                                    );
+                                    sungRomajiPaint.setShader(romaShader);
+                                    canvas.save();
+                                    if (factor > 0f) applyWordTransform(canvas, u.romajiCenterX, u.romajiCenterY, factor, dur);
+                                    canvas.drawText(u.romaji, u.romajiX, u.romajiY, sungRomajiPaint);
+                                    canvas.restore();
+                                    sungRomajiPaint.setShader(null);
+                                }
+                            }
+                        }
+
+                        sungKanjiPaint.clearShadowLayer();
+                        sungRomajiPaint.clearShadowLayer();
                     }
                 }
             }
@@ -1193,17 +1335,13 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         private static final int WORD_BLOOM_COLOR = 0x66FFFFFF;
         private static final float WORD_ACTIVE_SCALE = 1.00f;
         private static final float WORD_LIFT_DP = 1.4f;
-        private static final float WORD_FEATHER_PX = 8f;
-        /** Time a word takes to ease up into its pop. */
-        private static final long WORD_RISE_MS = 100;
-        /** Time a finished word takes to settle back to baseline. */
+        private static final long WORD_RISE_MS = 120;
         private static final long WORD_SETTLE_MS = 200;
 
         private static boolean isWordActiveNow(WordUnit u, long livePosMs) {
             return u.startMs != LyricsLine.NO_TIME && livePosMs >= u.startMs && livePosMs < u.endMs;
         }
 
-        /** 0 = resting, 1 = fully popped; eases in while singing and out after the word ends. */
         private static float wordActiveFactor(long startMs, long endMs, long livePosMs) {
             if (startMs == LyricsLine.NO_TIME || endMs == LyricsLine.NO_TIME || livePosMs < startMs) {
                 return 0f;
@@ -1211,69 +1349,25 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             if (livePosMs < endMs) {
                 float t = Math.min(1f, (livePosMs - startMs) / (float) WORD_RISE_MS);
                 return (float) Math.sin(t * (Math.PI / 2.0));
-            } else {
-                float p = Math.min(1f, (livePosMs - endMs) / (float) WORD_SETTLE_MS);
+            } else if (livePosMs < endMs + WORD_SETTLE_MS) {
+                float p = (livePosMs - endMs) / (float) WORD_SETTLE_MS;
                 return 0.5f * (1f + (float) Math.cos(p * Math.PI));
-            }
-        }
-
-        /** Pure canvas transform: subtle upward float plus gentle scale for long held notes. */
-        private static void applyWordTransform(Canvas canvas, float centerX, float centerY, float factor, long durationMs) {
-            final boolean isGrowable = durationMs >= 1000L;
-            final float maxScale = isGrowable ? 1.04f : 1.00f;
-            final float s = 1f + (maxScale - 1f) * factor;
-            canvas.translate(0f, -Dim.dp(WORD_LIFT_DP) * factor);
-            if (s != 1f) {
-                canvas.scale(s, s, centerX, centerY);
-            }
-        }
-
-        /**
-         * Draws text with a horizontal LinearGradient: solid inside the filled region, soft feathered
-         * drop-off to transparent in the unfilled region.
-         */
-        private void drawFeatheredFill(Canvas canvas, String text, float x, float y, float width,
-                                       float progress, TextPaint paint, int color, boolean isRtl) {
-            if (width <= 0f || progress <= 0f) {
-                return;
-            }
-            final int solid = color | 0xFF000000;
-            if (progress >= 1f) {
-                paint.setColor(solid);
-                canvas.drawText(text, x, y, paint);
-                return;
-            }
-            final float p = Math.max(0f, Math.min(1f, progress));
-            final float feather = Math.min(WORD_FEATHER_PX, width / 2f);
-            final int clear = color & 0x00FFFFFF;
-
-            final float wiperX;
-            final int[] colors;
-            final float[] stops;
-
-            if (isRtl) {
-                wiperX = (1f - p) * width;
-                final float curFeather = Math.min(feather, Math.min(wiperX, width - wiperX));
-                final float solidEnd = Math.max(0f, Math.min(1f, (wiperX - curFeather) / width));
-                final float fadeEnd = Math.max(solidEnd, Math.min(1f, (wiperX + curFeather) / width));
-                colors = new int[]{clear, clear, solid, solid};
-                stops = new float[]{0f, solidEnd, fadeEnd, 1f};
             } else {
-                wiperX = p * width;
-                final float curFeather = Math.min(feather, Math.min(wiperX, width - wiperX));
-                final float solidEnd = Math.max(0f, Math.min(1f, (wiperX - curFeather) / width));
-                final float fadeEnd = Math.max(solidEnd, Math.min(1f, (wiperX + curFeather) / width));
-                colors = new int[]{solid, solid, clear, clear};
-                stops = new float[]{0f, solidEnd, fadeEnd, 1f};
+                return 0f;
             }
+        }
 
-            final LinearGradient shader = new LinearGradient(x, 0f, x + width, 0f,
-                    colors,
-                    stops,
-                    Shader.TileMode.CLAMP);
-            paint.setShader(shader);
-            canvas.drawText(text, x, y, paint);
-            paint.setShader(null);
+        private static void applyWordTransform(Canvas canvas, float centerX, float centerY, float factor, long durationMs) {
+            if (durationMs >= 1000L) {
+                float durationSec = durationMs / 1000f;
+                float emphasis = Math.min(1f, Math.max(0f, durationSec - 1f));
+                float s = 1f + 0.08f * emphasis * factor;
+                float lift = Dim.dp(WORD_LIFT_DP) * (1f + 0.5f * emphasis) * factor;
+                canvas.translate(0f, -lift);
+                if (s != 1f) {
+                    canvas.scale(s, s, centerX, centerY);
+                }
+            }
         }
 
         private void drawTranslationLayout(Canvas canvas) {
@@ -1289,7 +1383,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         @Override
         protected void onSizeChanged(int w, int h, int oldw, int oldh) {
             super.onSizeChanged(w, h, oldw, oldh);
-            if ((getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.END) {
+            if (isRightAligned()) {
                 setPivotX(w);
             } else {
                 setPivotX(0f);
@@ -1494,7 +1588,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             }
 
             canvas.save();
-            float pivotX = ((getGravity() & Gravity.HORIZONTAL_GRAVITY_MASK) == Gravity.END)
+            float pivotX = isRightAligned()
                     ? (getWidth() - getCompoundPaddingRight())
                     : getCompoundPaddingLeft();
             float pivotY = getHeight() / 2f;
@@ -2864,7 +2958,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
         if (totalCount == 0) return lines;
 
-        // Invert duet alignment if the vast majority of lines were assigned to the opposite side
+        // Invert duet alignment if the vast majority of lines were assigned to the right side
         if (Math.round((rightCount * 100f) / totalCount) >= 85) {
             List<LyricsLine> flipped = new ArrayList<>(lines.size());
             for (LyricsLine orig : lines) {
@@ -2872,24 +2966,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         orig.startTimeMs(), orig.endTimeMs(), orig.text(),
                         orig.words(), orig.agentId(), !orig.isDuet(), orig.isBG(), orig.songPart()));
             }
-            lines = flipped;
-            rightCount = totalCount - rightCount;
-        }
-
-        // Keep standard alignment if nearly all lines fall on one side
-        int leftCount = totalCount - rightCount;
-        if (rightCount == 0 || (leftCount * 100f / totalCount) > 90) {
-            List<LyricsLine> leftOnly = new ArrayList<>(lines.size());
-            for (LyricsLine orig : lines) {
-                if (orig.isDuet()) {
-                    leftOnly.add(new LyricsLine(
-                            orig.startTimeMs(), orig.endTimeMs(), orig.text(),
-                            orig.words(), orig.agentId(), false, orig.isBG(), orig.songPart()));
-                } else {
-                    leftOnly.add(orig);
-                }
-            }
-            return leftOnly;
+            return flipped;
         }
 
         return lines;
@@ -3145,7 +3222,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             lineRow.setClipChildren(false);
             lineRow.setClipToPadding(false);
 
-            final int duetSideInset = Math.max(Dim.dp(48), (int) (context.getResources().getDisplayMetrics().widthPixels * 0.18f));
+            final int duetSideInset = Math.max(Dim.dp(48), (int) (context.getResources().getDisplayMetrics().widthPixels * 0.20f));
             final boolean isLineRtl = LyricsRomanizer.containsArabic(line.text()) || LyricsRomanizer.containsHebrew(line.text());
             if (line.isDuet()) {
                 lineView.setGravity(Gravity.END);
@@ -3728,7 +3805,13 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         eMs = sMs + 150L;
                     }
 
-                    if (text.endsWith(" ") || text.startsWith(" ")) {
+                    if (text.startsWith(" ")) {
+                        if (!units.isEmpty()) {
+                            units.get(units.size() - 1).endsWithSpace = true;
+                        }
+                        text = text.trim();
+                    }
+                    if (text.endsWith(" ")) {
                         space = true;
                         text = text.trim();
                     }

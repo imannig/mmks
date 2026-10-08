@@ -118,7 +118,13 @@ final class TtmlParser {
                                 amllCredits.add(key + ": " + value.trim());
                             }
                         } else if ("agent".equals(local)) {
-                            agentId = getAttr(p, NS_TTM, "id", "xml:id");
+                            agentId = getAttr(p, NS_XML, "id", "xml:id");
+                            if (agentId == null) {
+                                agentId = getAttr(p, NS_TTM, "id", "ttm:id");
+                            }
+                            if (agentId == null) {
+                                agentId = getAttr(p, null, "id", "id");
+                            }
                             agentType = getAttr(p, NS_TTM, "type", "ttm:type");
                             if (agentType == null) {
                                 agentType = getAttr(p, null, "type", "type");
@@ -407,52 +413,45 @@ final class TtmlParser {
     }
 
     private static void resolveDuet(List<LyricsLine> lines, Map<String, AgentInfo> agentTypes) {
-        String lastPersonAgentId = null;
-        boolean lastPersonIsDuet = false;
+        String lastPersonSingerId = null;
+        boolean currentSideIsLeft = true;
 
         for (int i = 0; i < lines.size(); i++) {
             final LyricsLine original = lines.get(i);
-            final String agentId = original.agentId();
-            if (agentId == null) {
+            final String singerId = original.agentId();
+            if (singerId == null) {
                 continue;
             }
 
-            final int agentNum = extractAgentNumber(agentId);
+            final AgentInfo agentData = agentTypes.get(singerId);
+            final String type = agentData != null && agentData.type() != null
+                    ? agentData.type()
+                    : ("v1000".equalsIgnoreCase(singerId) ? AGENT_TYPE_GROUP
+                    : ("v2000".equalsIgnoreCase(singerId) ? AGENT_TYPE_OTHER : AGENT_TYPE_PERSON));
+
             boolean isDuet;
-
-            if (agentNum == 1000 || "v1000".equalsIgnoreCase(agentId)) {
+            if (AGENT_TYPE_GROUP.equalsIgnoreCase(type)) {
                 isDuet = false;
-            } else if (agentNum > 0) {
-                isDuet = (agentNum % 2 == 0);
-                lastPersonAgentId = agentId;
-                lastPersonIsDuet = isDuet;
             } else {
-                final AgentInfo info = agentTypes.get(agentId);
-                final String type = info != null ? info.type() : AGENT_TYPE_PERSON;
-
-                if (AGENT_TYPE_GROUP.equals(type)) {
-                    isDuet = false;
-                } else if (lastPersonAgentId == null) {
-                    isDuet = AGENT_TYPE_OTHER.equals(type) || "v2".equalsIgnoreCase(agentId);
-                } else if (agentId.equals(lastPersonAgentId)) {
-                    isDuet = lastPersonIsDuet;
-                } else {
-                    isDuet = !lastPersonIsDuet;
+                if (lastPersonSingerId == null) {
+                    if (AGENT_TYPE_OTHER.equalsIgnoreCase(type) || "v2".equalsIgnoreCase(singerId)) {
+                        currentSideIsLeft = false;
+                    } else {
+                        currentSideIsLeft = true;
+                    }
+                } else if (!singerId.equalsIgnoreCase(lastPersonSingerId)) {
+                    currentSideIsLeft = !currentSideIsLeft;
                 }
-
-                if (!AGENT_TYPE_GROUP.equals(type)) {
-                    lastPersonAgentId = agentId;
-                    lastPersonIsDuet = isDuet;
-                }
+                isDuet = !currentSideIsLeft;
+                lastPersonSingerId = singerId;
             }
 
             lines.set(i, new LyricsLine(
                     original.startTimeMs(), original.endTimeMs(), original.text(),
-                    original.words(), agentId, isDuet, original.isBG(),
+                    original.words(), singerId, isDuet, original.isBG(),
                     original.songPart()));
         }
 
-        // Invert duet alignment if the vast majority of lines were assigned to the opposite side
         int totalCount = 0;
         int rightCount = 0;
         for (LyricsLine l : lines) {
@@ -468,20 +467,6 @@ final class TtmlParser {
                     lines.set(i, new LyricsLine(
                             orig.startTimeMs(), orig.endTimeMs(), orig.text(),
                             orig.words(), orig.agentId(), !orig.isDuet(), orig.isBG(), orig.songPart()));
-                }
-            }
-            rightCount = totalCount - rightCount;
-        }
-
-        // Keep standard alignment if nearly all lines fall on one side
-        int leftCount = totalCount - rightCount;
-        if (totalCount > 0 && (rightCount == 0 || (leftCount * 100f / totalCount) > 90)) {
-            for (int i = 0; i < lines.size(); i++) {
-                LyricsLine orig = lines.get(i);
-                if (orig.isDuet()) {
-                    lines.set(i, new LyricsLine(
-                            orig.startTimeMs(), orig.endTimeMs(), orig.text(),
-                            orig.words(), orig.agentId(), false, orig.isBG(), orig.songPart()));
                 }
             }
         }
@@ -1010,6 +995,20 @@ final class TtmlParser {
                         bgWrapperDepth--;
                     } else if (inBg) {
                         inBg = false;
+                        if (!bgWords.isEmpty() || bgFullText.length() > 0) {
+                            String bgText = normalizeText(bgFullText.toString());
+                            if (!bgText.trim().isEmpty()) {
+                                bgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
+                                stripBgWordParens(bgWords);
+                                if (!bgText.isEmpty()) {
+                                    final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
+                                    final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
+                                    bgLines.add(new LyricsLine(bgStart, bgEnd, bgText, new ArrayList<>(bgWords), bgAgentId, false, true, null));
+                                }
+                            }
+                            bgWords.clear();
+                            bgFullText.setLength(0);
+                        }
                     } else if (inRubyText && inRubyContainer) {
                         inRubyText = false;
                         final String text = normalizeText(rubyTextBuf.toString());

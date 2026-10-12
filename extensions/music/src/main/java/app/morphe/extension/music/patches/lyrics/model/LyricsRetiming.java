@@ -42,7 +42,9 @@ public final class LyricsRetiming {
         long[] maxEnd = new long[size];
         long currentMax = Long.MIN_VALUE;
         for (int i = 0; i < size; i++) {
-            currentMax = Math.max(currentMax, retimedLyrics.get(i).adjustedEndTimeMs);
+            RetimedEntry r = retimedLyrics.get(i);
+            long effectiveEnd = Math.max(r.actualEndTimeMs, r.adjustedEndTimeMs);
+            currentMax = Math.max(currentMax, effectiveEnd);
             maxEnd[i] = currentMax;
         }
         return maxEnd;
@@ -87,7 +89,8 @@ public final class LyricsRetiming {
         while (index >= 0 && index < adjustedEndMaxByIndex.length
                 && adjustedEndMaxByIndex[index] + endToleranceMs >= positionMs) {
             RetimedEntry retimed = retimedLyrics.get(index);
-            if (positionMs <= retimed.adjustedEndTimeMs + endToleranceMs) {
+            long effectiveEnd = Math.max(retimed.actualEndTimeMs, retimed.adjustedEndTimeMs);
+            if (positionMs <= effectiveEnd + endToleranceMs) {
                 activeIndices.add(index);
             }
             index--;
@@ -230,8 +233,9 @@ public final class LyricsRetiming {
 
         List<RetimedEntry> result = new ArrayList<>(len);
         for (int idx = 0; idx < len; idx++) {
-            long adjEnd = (Math.abs(newEndMs[idx] - originalEndMs[idx]) > RETIMING_GAP_THRESHOLD_MS)
+            long candidateAdj = (Math.abs(newEndMs[idx] - originalEndMs[idx]) > RETIMING_GAP_THRESHOLD_MS)
                     ? newEndMs[idx] : originalEndMs[idx];
+            long adjEnd = Math.max(originalEndMs[idx], candidateAdj);
             result.add(new RetimedEntry(lyrics.get(idx), startMs[idx], originalEndMs[idx], adjEnd));
         }
         return result;

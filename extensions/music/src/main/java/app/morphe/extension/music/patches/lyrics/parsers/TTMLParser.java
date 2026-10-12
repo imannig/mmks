@@ -951,6 +951,7 @@ public final class TTMLParser {
                     } else if (inBg && bgWrapperDepth > 0) {
                         bgWrapperDepth--;
                     } else if (inBg) {
+                        flushBgLine(bgLines, bgWords, bgFullText, bgBeginMs, bgEndMs, pBegin, pEnd);
                         inBg = false;
                     } else if (inRubyText && inRubyContainer) {
                         inRubyText = false;
@@ -1103,33 +1104,9 @@ public final class TTMLParser {
         }
 
         // Save final BG section if still open
-        //noinspection SizeReplaceableByIsEmpty
-        if (inBg && (!bgWords.isEmpty() || bgFullText.length() > 0)) {
-            String bgText = normalizeText(bgFullText.toString());
-            if (!bgText.trim().isEmpty()) {
-                String cleanBgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
-                stripBgWordParens(bgWords);
-                if (cleanBgText.indexOf(' ') < 0 && bgWords.size() > 1 && !isContinuousCjk(bgWords.get(0).text())) {
-                    StringBuilder reconstructed = new StringBuilder();
-                    for (int i = 0; i < bgWords.size(); i++) {
-                        final Word w = bgWords.get(i);
-                        if (i > 0) reconstructed.append(' ');
-                        reconstructed.append(w.text());
-                        final boolean shouldEndWithSpace = (i < bgWords.size() - 1);
-                        if (w.endsWithSpace() != shouldEndWithSpace) {
-                            bgWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
-                        }
-                    }
-                    cleanBgText = reconstructed.toString();
-                }
-                if (!cleanBgText.isEmpty()) {
-                    final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
-                    final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
-                    bgLines.add(new LyricsLine(bgStart, bgEnd, cleanBgText, new ArrayList<>(bgWords)));
-                }
-            }
-            bgWords.clear();
-            bgFullText.setLength(0);
+        if (inBg) {
+            flushBgLine(bgLines, bgWords, bgFullText, bgBeginMs, bgEndMs, pBegin, pEnd);
+            inBg = false;
         }
 
         if (lineText.trim().isEmpty() && bgLines.isEmpty()) {
@@ -1190,6 +1167,44 @@ public final class TTMLParser {
                 inlineRoma.isEmpty() ? null : inlineRoma,
                 bgInlineTrans.isEmpty() ? null : bgInlineTrans,
                 bgInlineRoma.isEmpty() ? null : bgInlineRoma);
+    }
+
+    private static void flushBgLine(
+            List<LyricsLine> bgLines,
+            List<Word> bgWords,
+            StringBuilder bgFullText,
+            long bgBeginMs,
+            long bgEndMs,
+            long pBegin,
+            long pEnd) {
+        if (bgWords.isEmpty() && bgFullText.length() == 0) {
+            return;
+        }
+        String bgText = normalizeText(bgFullText.toString());
+        if (!bgText.trim().isEmpty()) {
+            String cleanBgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
+            stripBgWordParens(bgWords);
+            if (cleanBgText.indexOf(' ') < 0 && bgWords.size() > 1 && !isContinuousCjk(bgWords.get(0).text())) {
+                StringBuilder reconstructed = new StringBuilder();
+                for (int i = 0; i < bgWords.size(); i++) {
+                    final Word w = bgWords.get(i);
+                    if (i > 0) reconstructed.append(' ');
+                    reconstructed.append(w.text());
+                    final boolean shouldEndWithSpace = (i < bgWords.size() - 1);
+                    if (w.endsWithSpace() != shouldEndWithSpace) {
+                        bgWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                    }
+                }
+                cleanBgText = reconstructed.toString();
+            }
+            if (!cleanBgText.isEmpty()) {
+                final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
+                final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
+                bgLines.add(new LyricsLine(bgStart, bgEnd, cleanBgText, new ArrayList<>(bgWords)));
+            }
+        }
+        bgWords.clear();
+        bgFullText.setLength(0);
     }
 
     private static void stripBgWordParens(List<Word> bgWords) {

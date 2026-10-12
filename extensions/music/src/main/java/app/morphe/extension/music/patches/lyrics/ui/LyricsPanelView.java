@@ -553,10 +553,16 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 secondaryExpandAnimator = null;
             }
             if (Math.abs(secondaryExpandFraction - target) < 0.001f) {
-                if (!expand && getVisibility() != View.GONE) {
-                    setVisibility(View.GONE);
-                } else if (expand && getVisibility() != View.VISIBLE) {
-                    setVisibility(View.VISIBLE);
+                if (!expand) {
+                    if (getVisibility() != View.GONE) {
+                        setVisibility(View.GONE);
+                    }
+                    setAlpha(0f);
+                } else {
+                    if (getVisibility() != View.VISIBLE) {
+                        setVisibility(View.VISIBLE);
+                    }
+                    setAlpha(0.90f);
                 }
                 return;
             }
@@ -578,6 +584,9 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                     secondaryExpandAnimator = null;
                     if (!expand) {
                         setVisibility(View.GONE);
+                        setAlpha(0f);
+                    } else {
+                        setAlpha(0.90f);
                     }
                 }
             });
@@ -4196,7 +4205,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
         if (line.words().size() == 1) {
             Word single = line.words().get(0);
-            String rawWord = isSec ? stripParentheses(single.text()) : single.text();
+            String rawWord = isSec ? cleanWordText(single.text()) : single.text();
             String wText = cleanJapaneseQuotes(rawWord).trim();
             if (wText.length() > 1) {
                 long wordStart = single.startMs();
@@ -4230,7 +4239,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         int offset = 0;
         for (int wi = 0; wi < line.words().size(); wi++) {
             Word word = line.words().get(wi);
-            String rawWord = isSec ? stripParentheses(word.text()) : word.text();
+            String rawWord = isSec ? cleanWordText(word.text()) : word.text();
             String wordText = java.text.Normalizer.normalize(
                     cleanJapaneseQuotes(rawWord).trim(), java.text.Normalizer.Form.NFKC);
             wordText = wordText.replace('\u2005', ' ').replace('\u3000', ' ').replace('\u00A0', ' ').trim();
@@ -4245,6 +4254,13 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 if (!trimmed.isEmpty()) {
                     start = text.indexOf(trimmed, offset);
                     len = trimmed.length();
+                }
+            }
+            if (start < 0) {
+                String cleaned = cleanWordText(wordText);
+                if (!cleaned.isEmpty()) {
+                    start = text.indexOf(cleaned, offset);
+                    len = cleaned.length();
                 }
             }
             if (start < 0) {
@@ -4324,6 +4340,33 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
     }
 
     @NonNull
+    public static String cleanWordText(@Nullable String text) {
+        if (text == null) {
+            return "";
+        }
+        String trimmed = text.trim();
+        int start = 0;
+        int end = trimmed.length();
+        while (start < end) {
+            char c = trimmed.charAt(start);
+            if (c == '(' || c == '（' || c == '[' || c == '【' || c == '{' || c == '<') {
+                start++;
+            } else {
+                break;
+            }
+        }
+        while (end > start) {
+            char c = trimmed.charAt(end - 1);
+            if (c == ')' || c == '）' || c == ']' || c == '】' || c == '}' || c == '>') {
+                end--;
+            } else {
+                break;
+            }
+        }
+        return (start >= end) ? "" : trimmed.substring(start, end).trim();
+    }
+
+    @NonNull
     public static String normalizeRomajiText(@Nullable String raw) {
         if (raw == null || raw.isEmpty()) {
             return "";
@@ -4388,17 +4431,6 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
         LyricsLine line = lines.get(index);
         boolean candidate = line.isBG() || LRCParser.hasOuterParentheses(line.text());
-        if (!candidate && index > 0) {
-            LyricsLine prev = lines.get(index - 1);
-            long gap = line.startTimeMs() - prev.startTimeMs();
-            if (gap >= 0 && gap <= 3500L) {
-                String cleanCurr = LRCParser.cleanTextForComparison(line.text());
-                String cleanPrev = LRCParser.cleanTextForComparison(prev.text());
-                if (!cleanCurr.isEmpty() && cleanCurr.equals(cleanPrev)) {
-                    candidate = true;
-                }
-            }
-        }
         if (!candidate) {
             return false;
         }
@@ -4469,7 +4501,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         for (int i = 0; i < units.size(); i++) {
             LyricsLineView.WordUnit u = units.get(i);
             if (!u.romaji.isEmpty()) {
-                u.romaji = stripParentheses(u.romaji).trim();
+                u.romaji = cleanWordText(u.romaji).trim();
             }
         }
         return units;
@@ -6222,6 +6254,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
         List<Integer> activeList = new ArrayList<>(activeSet);
         Collections.sort(activeList);
+        List<Integer> mainActiveList = new ArrayList<>(activeList.size());
         for (int idx : activeList) {
             int mainAct = idx;
             if (mainAct >= 0 && mainAct < lineViews.size()) {
@@ -6234,12 +6267,12 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             while (mainAct > 0 && isSecondaryLineView(mainAct)) {
                 mainAct--;
             }
-            if (mainAct >= 0 && mainAct < retimedLyrics.size()) {
-                return mainAct;
+            if (mainAct >= 0 && mainAct < retimedLyrics.size() && !mainActiveList.contains(mainAct)) {
+                mainActiveList.add(mainAct);
             }
         }
         int idx = LyricsRetiming.calculatePrimaryRetimedLineIndex(
-                retimedLyrics, activeList, currentTimeMs, previousPrimaryActiveIndex);
+                retimedLyrics, mainActiveList, currentTimeMs, previousPrimaryActiveIndex);
         while (idx > 0 && isSecondaryLineView(idx)) {
             idx--;
         }
@@ -6459,6 +6492,10 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 boolean isBgActive = activeSet.contains(i) || parentActive;
                 slv.setLineActive(isBgActive);
                 slv.animateSecondaryExpansion(isBgActive);
+
+                if (applyBlur) {
+                    applyBlurEffect(slv, null);
+                }
 
                 boolean hasWordSync = wordSync
                         && (slv.hasWordTimings()

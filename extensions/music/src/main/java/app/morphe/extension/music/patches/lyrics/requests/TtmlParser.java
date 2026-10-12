@@ -118,13 +118,7 @@ final class TtmlParser {
                                 amllCredits.add(key + ": " + value.trim());
                             }
                         } else if ("agent".equals(local)) {
-                            agentId = getAttr(p, NS_XML, "id", "xml:id");
-                            if (agentId == null) {
-                                agentId = getAttr(p, NS_TTM, "id", "ttm:id");
-                            }
-                            if (agentId == null) {
-                                agentId = getAttr(p, null, "id", "id");
-                            }
+                            agentId = getAttr(p, NS_TTM, "id", "xml:id");
                             agentType = getAttr(p, NS_TTM, "type", "ttm:type");
                             if (agentType == null) {
                                 agentType = getAttr(p, null, "type", "type");
@@ -222,7 +216,7 @@ final class TtmlParser {
             final List<LyricsLine> romanization = new ArrayList<>();
             final Map<String, List<LyricsLine>> translations = new HashMap<>();
             final Map<String, List<LyricsLine>> romanizations = new HashMap<>();
-            int mainLineCount;
+            int mainLineCount = 0;
 
             boolean noTiming = false;
             boolean inHead = false;
@@ -259,16 +253,18 @@ final class TtmlParser {
 
                         final ParsedLine pl = processPElement(p, pBegin, pEnd);
 
-                        if (pl != null && !pl.text().trim().isEmpty()) {
+                        if (pl != null && (!pl.text().trim().isEmpty() || !pl.bgLines().isEmpty())) {
                             final List<RomajiSyllable> lineSidecar =
                                     findSidecarRoman(lineId, sidecarRoman);
                             if (lineSidecar != null && !lineSidecar.isEmpty()) {
                                 alignRomajiToWords(pl.words(), lineSidecar);
                             }
-                            final LyricsLine line = new LyricsLine(
-                                    pl.begin(), pl.end(), pl.text(), pl.words(),
-                                    agentId, false, false, divSongPart);
-                            lines.add(line);
+                            if (!pl.text().trim().isEmpty()) {
+                                final LyricsLine line = new LyricsLine(
+                                        pl.begin(), pl.end(), pl.text(), pl.words(),
+                                        agentId, false, false, divSongPart);
+                                lines.add(line);
+                            }
                             mainLineCount = lines.size();
 
                             final String bgAgent = pl.bgAgentId() != null ? pl.bgAgentId() : agentId;
@@ -280,10 +276,12 @@ final class TtmlParser {
                                 lines.add(bgLine);
                             }
 
-                            final String romaText = buildLineRomaji(
-                                    pl.words(), lineSidecar);
-                            romanization.add(new LyricsLine(
-                                    LyricsLine.NO_TIME, romaText));
+                            if (!pl.text().trim().isEmpty()) {
+                                final String romaText = buildLineRomaji(
+                                        pl.words(), lineSidecar);
+                                romanization.add(new LyricsLine(
+                                        LyricsLine.NO_TIME, romaText));
+                            }
                             for (int i = 0; i < pl.bgLines().size(); i++) {
                                 String bgRoma = "";
                                 if (pl.bgInlineRomanizations() != null && !pl.bgInlineRomanizations().isEmpty()) {
@@ -413,45 +411,52 @@ final class TtmlParser {
     }
 
     private static void resolveDuet(List<LyricsLine> lines, Map<String, AgentInfo> agentTypes) {
-        String lastPersonSingerId = null;
-        boolean currentSideIsLeft = true;
+        String lastPersonAgentId = null;
+        boolean lastPersonIsDuet = false;
 
         for (int i = 0; i < lines.size(); i++) {
             final LyricsLine original = lines.get(i);
-            final String singerId = original.agentId();
-            if (singerId == null) {
+            final String agentId = original.agentId();
+            if (agentId == null) {
                 continue;
             }
 
-            final AgentInfo agentData = agentTypes.get(singerId);
-            final String type = agentData != null && agentData.type() != null
-                    ? agentData.type()
-                    : ("v1000".equalsIgnoreCase(singerId) ? AGENT_TYPE_GROUP
-                    : ("v2000".equalsIgnoreCase(singerId) ? AGENT_TYPE_OTHER : AGENT_TYPE_PERSON));
-
+            final int agentNum = extractAgentNumber(agentId);
             boolean isDuet;
-            if (AGENT_TYPE_GROUP.equalsIgnoreCase(type)) {
+
+            if (agentNum == 1000 || "v1000".equalsIgnoreCase(agentId)) {
                 isDuet = false;
+            } else if (agentNum > 0) {
+                isDuet = (agentNum % 2 == 0);
+                lastPersonAgentId = agentId;
+                lastPersonIsDuet = isDuet;
             } else {
-                if (lastPersonSingerId == null) {
-                    if (AGENT_TYPE_OTHER.equalsIgnoreCase(type) || "v2".equalsIgnoreCase(singerId)) {
-                        currentSideIsLeft = false;
-                    } else {
-                        currentSideIsLeft = true;
-                    }
-                } else if (!singerId.equalsIgnoreCase(lastPersonSingerId)) {
-                    currentSideIsLeft = !currentSideIsLeft;
+                final AgentInfo info = agentTypes.get(agentId);
+                final String type = info != null ? info.type() : AGENT_TYPE_PERSON;
+
+                if (AGENT_TYPE_GROUP.equals(type)) {
+                    isDuet = false;
+                } else if (lastPersonAgentId == null) {
+                    isDuet = AGENT_TYPE_OTHER.equals(type) || "v2".equalsIgnoreCase(agentId);
+                } else if (agentId.equals(lastPersonAgentId)) {
+                    isDuet = lastPersonIsDuet;
+                } else {
+                    isDuet = !lastPersonIsDuet;
                 }
-                isDuet = !currentSideIsLeft;
-                lastPersonSingerId = singerId;
+
+                if (!AGENT_TYPE_GROUP.equals(type)) {
+                    lastPersonAgentId = agentId;
+                    lastPersonIsDuet = isDuet;
+                }
             }
 
             lines.set(i, new LyricsLine(
                     original.startTimeMs(), original.endTimeMs(), original.text(),
-                    original.words(), singerId, isDuet, original.isBG(),
+                    original.words(), agentId, isDuet, original.isBG(),
                     original.songPart()));
         }
 
+        // Invert duet alignment if the vast majority of lines were assigned to the opposite side
         int totalCount = 0;
         int rightCount = 0;
         for (LyricsLine l : lines) {
@@ -467,6 +472,20 @@ final class TtmlParser {
                     lines.set(i, new LyricsLine(
                             orig.startTimeMs(), orig.endTimeMs(), orig.text(),
                             orig.words(), orig.agentId(), !orig.isDuet(), orig.isBG(), orig.songPart()));
+                }
+            }
+            rightCount = totalCount - rightCount;
+        }
+
+        // Keep standard alignment if nearly all lines fall on one side
+        int leftCount = totalCount - rightCount;
+        if (totalCount > 0 && (rightCount == 0 || (leftCount * 100f / totalCount) > 90)) {
+            for (int i = 0; i < lines.size(); i++) {
+                LyricsLine orig = lines.get(i);
+                if (orig.isDuet()) {
+                    lines.set(i, new LyricsLine(
+                            orig.startTimeMs(), orig.endTimeMs(), orig.text(),
+                            orig.words(), orig.agentId(), false, orig.isBG(), orig.songPart()));
                 }
             }
         }
@@ -748,39 +767,86 @@ final class TtmlParser {
                 }
             } else if (event == XmlPullParser.TEXT) {
                 final String raw = p.getText();
-                if (raw == null || raw.isEmpty()) continue;
+                final boolean isWhitespace = raw.trim().isEmpty();
+                final boolean hasNewline = raw.contains("\n");
+
                 if (inBgWord) {
                     bgWordBuf.append(raw);
                 } else if (inMainWord) {
                     mainWordBuf.append(raw);
                 } else if (inBg && bgWrapperDepth == 0) {
-                    bgFullText.append(raw);
-                    // Whitespace between bg word spans
-                    if (!raw.contains("\n") && raw.trim().isEmpty() && !bgWords.isEmpty()) {
-                        final Word prev = bgWords.get(bgWords.size() - 1);
-                        if (!prev.endsWithSpace()) {
-                            bgWords.set(bgWords.size() - 1, new Word(
-                                    prev.startMs(), prev.endMs(),
-                                    prev.text(), prev.romaji(), true));
+                    if (isWhitespace) {
+                        if (!bgWords.isEmpty()) {
+                            final Word prev = bgWords.get(bgWords.size() - 1);
+                            final boolean cjk = isContinuousCjk(prev.text());
+                            if (!hasNewline || !cjk) {
+                                if (bgFullText.length() > 0 && bgFullText.charAt(bgFullText.length() - 1) != ' ') {
+                                    bgFullText.append(' ');
+                                }
+                                if (!prev.endsWithSpace()) {
+                                    bgWords.set(bgWords.size() - 1, new Word(
+                                            prev.startMs(), prev.endMs(),
+                                            prev.text(), prev.romaji(), true));
+                                }
+                            }
                         }
+                    } else {
+                        bgFullText.append(raw);
                     }
                 } else if (!inBg) {
-                    mainFullText.append(raw);
-                    // Whitespace between main word spans
-                    if (!raw.contains("\n") && raw.trim().isEmpty() && !mainWords.isEmpty()) {
-                        final Word prev = mainWords.get(mainWords.size() - 1);
-                        if (!prev.endsWithSpace()) {
-                            mainWords.set(mainWords.size() - 1, new Word(
-                                    prev.startMs(), prev.endMs(),
-                                    prev.text(), prev.romaji(), true));
+                    if (isWhitespace) {
+                        if (!mainWords.isEmpty()) {
+                            final Word prev = mainWords.get(mainWords.size() - 1);
+                            final boolean cjk = isContinuousCjk(prev.text());
+                            if (!hasNewline || !cjk) {
+                                if (mainFullText.length() > 0 && mainFullText.charAt(mainFullText.length() - 1) != ' ') {
+                                    mainFullText.append(' ');
+                                }
+                                if (!prev.endsWithSpace()) {
+                                    mainWords.set(mainWords.size() - 1, new Word(
+                                            prev.startMs(), prev.endMs(),
+                                            prev.text(), prev.romaji(), true));
+                                }
+                            }
                         }
+                    } else {
+                        mainFullText.append(raw);
                     }
                 }
             }
         }
 
-        final String main = normalizeText(mainFullText.toString());
-        final String bg = normalizeText(bgFullText.toString());
+        final String rawMain = normalizeText(mainFullText.toString());
+        String main = rawMain;
+        if (main.indexOf(' ') < 0 && mainWords.size() > 1 && !isContinuousCjk(mainWords.get(0).text())) {
+            StringBuilder reconstructed = new StringBuilder();
+            for (int i = 0; i < mainWords.size(); i++) {
+                final Word w = mainWords.get(i);
+                if (i > 0) reconstructed.append(' ');
+                reconstructed.append(w.text());
+                final boolean shouldEndWithSpace = (i < mainWords.size() - 1);
+                if (w.endsWithSpace() != shouldEndWithSpace) {
+                    mainWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                }
+            }
+            main = reconstructed.toString();
+        }
+
+        final String rawBg = normalizeText(bgFullText.toString());
+        String bg = rawBg;
+        if (bg.indexOf(' ') < 0 && bgWords.size() > 1 && !isContinuousCjk(bgWords.get(0).text())) {
+            StringBuilder reconstructed = new StringBuilder();
+            for (int i = 0; i < bgWords.size(); i++) {
+                final Word w = bgWords.get(i);
+                if (i > 0) reconstructed.append(' ');
+                reconstructed.append(w.text());
+                final boolean shouldEndWithSpace = (i < bgWords.size() - 1);
+                if (w.endsWithSpace() != shouldEndWithSpace) {
+                    bgWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                }
+            }
+            bg = reconstructed.toString();
+        }
 
         if (!mainWords.isEmpty()) {
             final Word first = mainWords.get(0);
@@ -995,20 +1061,31 @@ final class TtmlParser {
                         bgWrapperDepth--;
                     } else if (inBg) {
                         inBg = false;
-                        if (!bgWords.isEmpty() || bgFullText.length() > 0) {
-                            String bgText = normalizeText(bgFullText.toString());
-                            if (!bgText.trim().isEmpty()) {
-                                bgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
-                                stripBgWordParens(bgWords);
-                                if (!bgText.isEmpty()) {
-                                    final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
-                                    final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
-                                    bgLines.add(new LyricsLine(bgStart, bgEnd, bgText, new ArrayList<>(bgWords), bgAgentId, false, true, null));
+                        final String bgTextRaw = normalizeText(bgFullText.toString());
+                        if (!bgTextRaw.trim().isEmpty()) {
+                            String cleanBgText = bgTextRaw.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
+                            stripBgWordParens(bgWords);
+                            if (cleanBgText.indexOf(' ') < 0 && bgWords.size() > 1 && !isContinuousCjk(bgWords.get(0).text())) {
+                                StringBuilder reconstructed = new StringBuilder();
+                                for (int i = 0; i < bgWords.size(); i++) {
+                                    final Word w = bgWords.get(i);
+                                    if (i > 0) reconstructed.append(' ');
+                                    reconstructed.append(w.text());
+                                    final boolean shouldEndWithSpace = (i < bgWords.size() - 1);
+                                    if (w.endsWithSpace() != shouldEndWithSpace) {
+                                        bgWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                                    }
                                 }
+                                cleanBgText = reconstructed.toString();
                             }
-                            bgWords.clear();
-                            bgFullText.setLength(0);
+                            if (!cleanBgText.isEmpty()) {
+                                final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
+                                final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
+                                bgLines.add(new LyricsLine(bgStart, bgEnd, cleanBgText, new ArrayList<>(bgWords)));
+                            }
                         }
+                        bgWords.clear();
+                        bgFullText.setLength(0);
                     } else if (inRubyText && inRubyContainer) {
                         inRubyText = false;
                         final String text = normalizeText(rubyTextBuf.toString());
@@ -1091,8 +1168,8 @@ final class TtmlParser {
             } else if (event == XmlPullParser.TEXT) {
                 final String raw = p.getText();
                 if (raw == null || raw.isEmpty()) continue;
-                final boolean formattingNewline = raw.contains("\n") && raw.trim().isEmpty();
-                final boolean spaceBetweenWords = !raw.contains("\n") && raw.trim().isEmpty();
+                final boolean isWhitespace = raw.trim().isEmpty();
+                final boolean hasNewline = raw.contains("\n");
 
                 if (inBgTranslation) {
                     bgTransBuf.append(raw);
@@ -1101,18 +1178,23 @@ final class TtmlParser {
                 } else if (inBgWord) {
                     bgWordBuf.append(raw);
                 } else if (inBg && bgWrapperDepth == 0) {
-                    // Formatting newlines (whitespace + \n) between BG word spans
-                    if (!formattingNewline) {
-                        bgFullText.append(raw);
-                    }
-                    // Whitespace-only (non-newline) between BG word spans
-                    if (spaceBetweenWords && !bgWords.isEmpty()) {
-                        final Word prev = bgWords.get(bgWords.size() - 1);
-                        if (!prev.endsWithSpace()) {
-                            bgWords.set(bgWords.size() - 1, new Word(
-                                    prev.startMs(), prev.endMs(),
-                                    prev.text(), prev.romaji(), true));
+                    if (isWhitespace) {
+                        if (!bgWords.isEmpty()) {
+                            final Word prev = bgWords.get(bgWords.size() - 1);
+                            final boolean cjk = isContinuousCjk(prev.text());
+                            if (!hasNewline || !cjk) {
+                                if (bgFullText.length() > 0 && bgFullText.charAt(bgFullText.length() - 1) != ' ') {
+                                    bgFullText.append(' ');
+                                }
+                                if (!prev.endsWithSpace()) {
+                                    bgWords.set(bgWords.size() - 1, new Word(
+                                            prev.startMs(), prev.endMs(),
+                                            prev.text(), prev.romaji(), true));
+                                }
+                            }
                         }
+                    } else {
+                        bgFullText.append(raw);
                     }
                 } else if (inRubyBase && inRubyContainer) {
                     rubyBaseBuf.append(raw);
@@ -1125,25 +1207,75 @@ final class TtmlParser {
                 } else if (inWord && !inRubyContainer) {
                     wordBuf.append(raw);
                 } else if (!inBg && !inRubyContainer) {
-                    // Formatting newlines (whitespace + \n) between word spans - skip entirely
-                    if (!formattingNewline) {
-                        fullText.append(raw);
-                        // Whitespace-only (non-newline) between word spans -> trailing space
-                        if (spaceBetweenWords && !words.isEmpty()) {
+                    if (isWhitespace) {
+                        if (!words.isEmpty()) {
                             final Word prev = words.get(words.size() - 1);
-                            if (!prev.endsWithSpace()) {
-                                words.set(words.size() - 1, new Word(
-                                        prev.startMs(), prev.endMs(),
-                                        prev.text(), prev.romaji(), true));
+                            final boolean cjk = isContinuousCjk(prev.text());
+                            if (!hasNewline || !cjk) {
+                                if (fullText.length() > 0 && fullText.charAt(fullText.length() - 1) != ' ') {
+                                    fullText.append(' ');
+                                }
+                                if (!prev.endsWithSpace()) {
+                                    words.set(words.size() - 1, new Word(
+                                            prev.startMs(), prev.endMs(),
+                                            prev.text(), prev.romaji(), true));
+                                }
                             }
                         }
+                    } else {
+                        fullText.append(raw);
                     }
                 }
             }
         }
 
-        final String lineText = normalizeText(fullText.toString());
-        if (lineText.trim().isEmpty()) {
+        final String rawLineText = normalizeText(fullText.toString());
+        String lineText = rawLineText;
+        if (lineText.indexOf(' ') < 0 && words.size() > 1 && !isContinuousCjk(words.get(0).text())) {
+            StringBuilder reconstructed = new StringBuilder();
+            for (int i = 0; i < words.size(); i++) {
+                final Word w = words.get(i);
+                if (i > 0) reconstructed.append(' ');
+                reconstructed.append(w.text());
+                final boolean shouldEndWithSpace = (i < words.size() - 1);
+                if (w.endsWithSpace() != shouldEndWithSpace) {
+                    words.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                }
+            }
+            lineText = reconstructed.toString();
+        }
+
+        // Save final BG section if still open
+        //noinspection SizeReplaceableByIsEmpty
+        if (inBg && (!bgWords.isEmpty() || bgFullText.length() > 0)) {
+            String bgText = normalizeText(bgFullText.toString());
+            if (!bgText.trim().isEmpty()) {
+                String cleanBgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
+                stripBgWordParens(bgWords);
+                if (cleanBgText.indexOf(' ') < 0 && bgWords.size() > 1 && !isContinuousCjk(bgWords.get(0).text())) {
+                    StringBuilder reconstructed = new StringBuilder();
+                    for (int i = 0; i < bgWords.size(); i++) {
+                        final Word w = bgWords.get(i);
+                        if (i > 0) reconstructed.append(' ');
+                        reconstructed.append(w.text());
+                        final boolean shouldEndWithSpace = (i < bgWords.size() - 1);
+                        if (w.endsWithSpace() != shouldEndWithSpace) {
+                            bgWords.set(i, new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), shouldEndWithSpace));
+                        }
+                    }
+                    cleanBgText = reconstructed.toString();
+                }
+                if (!cleanBgText.isEmpty()) {
+                    final long bgStart = bgBeginMs > 0 ? bgBeginMs : (bgWords.isEmpty() ? pBegin : bgWords.get(0).startMs());
+                    final long bgEnd = bgEndMs > 0 ? bgEndMs : (bgWords.isEmpty() ? pEnd : bgWords.get(bgWords.size() - 1).endMs());
+                    bgLines.add(new LyricsLine(bgStart, bgEnd, cleanBgText, new ArrayList<>(bgWords)));
+                }
+            }
+            bgWords.clear();
+            bgFullText.setLength(0);
+        }
+
+        if (lineText.trim().isEmpty() && bgLines.isEmpty()) {
             return null;
         }
 
@@ -1165,9 +1297,12 @@ final class TtmlParser {
                     effectiveEnd = maxEnd;
                 }
             }
+        } else if ((effectiveBegin == 0 || effectiveEnd == 0) && !bgLines.isEmpty()) {
+            effectiveBegin = bgLines.get(0).startTimeMs();
+            effectiveEnd = bgLines.get(bgLines.size() - 1).endTimeMs();
         }
 
-        if (effectiveBegin == 0 && effectiveEnd == 0 && words.isEmpty()) {
+        if (effectiveBegin == 0 && effectiveEnd == 0 && words.isEmpty() && bgLines.isEmpty()) {
             effectiveBegin = LyricsLine.NO_TIME;
             effectiveEnd = LyricsLine.NO_TIME;
         }
@@ -1186,18 +1321,9 @@ final class TtmlParser {
             }
         }
 
-        // Save final BG section
-        //noinspection SizeReplaceableByIsEmpty
-        if (inBg && (!bgWords.isEmpty() || bgFullText.length() > 0)) {
-            String bgText = normalizeText(bgFullText.toString());
-            if (!bgText.trim().isEmpty()) {
-                bgText = bgText.replaceAll("^[(（]+", "").replaceAll("[)）]+$", "").trim();
-                stripBgWordParens(bgWords);
-                if (!bgText.isEmpty()) {
-                    final long bgStart = bgBeginMs > 0 ? bgBeginMs : pBegin;
-                    final long bgEnd = bgEndMs > 0 ? bgEndMs : pEnd;
-                    bgLines.add(new LyricsLine(bgStart, bgEnd, bgText, bgWords));
-                }
+        for (LyricsLine bg : bgLines) {
+            if (bg.endTimeMs() > effectiveEnd && effectiveEnd > 0) {
+                effectiveEnd = bg.endTimeMs();
             }
         }
 
@@ -1224,6 +1350,19 @@ final class TtmlParser {
             bgWords.set(lastIdx, new Word(last.startMs(), last.endMs(),
                     strippedLast, last.romaji(), false));
         }
+    }
+
+    static boolean isContinuousCjk(@Nullable String s) {
+        if (s == null || s.isEmpty()) return false;
+        int cp = s.codePointBefore(s.length());
+        Character.UnicodeBlock b = Character.UnicodeBlock.of(cp);
+        return b == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS
+                || b == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A
+                || b == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B
+                || b == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS
+                || b == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+                || b == Character.UnicodeBlock.HIRAGANA
+                || b == Character.UnicodeBlock.KATAKANA;
     }
 
     private static void alignRomajiToWords(List<Word> words,

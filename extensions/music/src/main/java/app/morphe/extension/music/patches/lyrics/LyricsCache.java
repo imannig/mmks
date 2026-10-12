@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -143,6 +144,10 @@ final class LyricsCache {
             if (preferred == null || preferred == Lyrics.NOT_FOUND) {
                 return null;
             }
+            if (isCorruptedPetitLyrics(preferred.providerName(), preferred)) {
+                discard(file);
+                return null;
+            }
             return new LyricsPreference(queryTitle, queryArtist, preferred,
                     List.copyOf(queue), fingerprint);
         } catch (Exception ex) {
@@ -225,12 +230,44 @@ final class LyricsCache {
         return file == null ? "null" : file.getName();
     }
 
+    public static boolean isSkipTranslation(@Nullable String s) {
+        if (s == null) return true;
+        String t = s.trim();
+        return t.isEmpty() || t.equalsIgnoreCase("SKIP") || t.equalsIgnoreCase("[SKIP]")
+                || t.equalsIgnoreCase("<SKIP>") || t.equalsIgnoreCase("(SKIP)")
+                || t.equalsIgnoreCase("SKIP.");
+    }
+
+    @Nullable
+    private static List<String> sanitizeTranslationList(@Nullable List<String> list, @Nullable File file) {
+        if (list == null) return null;
+        boolean anyMeaningful = false;
+        List<String> sanitized = new ArrayList<>(list.size());
+        for (String s : list) {
+            if (isSkipTranslation(s)) {
+                sanitized.add("");
+            } else {
+                sanitized.add(s);
+                anyMeaningful = true;
+            }
+        }
+        if (!anyMeaningful) {
+            if (file != null) {
+                discard(file);
+            }
+            return null;
+        }
+        return sanitized;
+    }
+
     @Nullable
     static List<String> getTranslation(TrackInfo track,
                                        String source,
                                        String language,
                                        List<String> sourceLines) {
-        return readStringList(translationFile(track, source, language, sourceLines), sourceLines);
+        File file = translationFile(track, source, language, sourceLines);
+        List<String> raw = readStringList(file, sourceLines);
+        return sanitizeTranslationList(raw, file);
     }
 
     static void putTranslation(TrackInfo track,
@@ -238,19 +275,32 @@ final class LyricsCache {
                                 String language,
                                 List<String> sourceLines,
                                 List<String> lines) {
-        writeStringList(translationFile(track, source, language, sourceLines), lines);
+        File file = translationFile(track, source, language, sourceLines);
+        List<String> clean = sanitizeTranslationList(lines, null);
+        if (clean != null) {
+            writeStringList(file, clean);
+        } else if (file != null) {
+            discard(file);
+        }
     }
 
     @Nullable
     static List<String> getTranslationAI(TrackInfo track, String source,
             String language, List<String> sourceLines) {
-        return readStringList(aiTranslationFile(track, source, language, sourceLines),
-                sourceLines);
+        File file = aiTranslationFile(track, source, language, sourceLines);
+        List<String> raw = readStringList(file, sourceLines);
+        return sanitizeTranslationList(raw, file);
     }
 
     static void putTranslationAI(TrackInfo track, String source,
             String language, List<String> sourceLines, List<String> lines) {
-        writeStringList(aiTranslationFile(track, source, language, sourceLines), lines);
+        File file = aiTranslationFile(track, source, language, sourceLines);
+        List<String> clean = sanitizeTranslationList(lines, null);
+        if (clean != null) {
+            writeStringList(file, clean);
+        } else if (file != null) {
+            discard(file);
+        }
     }
 
     @Nullable
@@ -479,12 +529,42 @@ final class LyricsCache {
 
             String content = String.join("\n",
                     lines.subList(header.contentStart(), lines.size()));
-            return parseContentLines(content, header.synced(), header.provider(),
+            Lyrics lyrics = parseContentLines(content, header.synced(), header.provider(),
                     header.songwriters(), header.sourceUrl(), key);
+            if (lyrics != null && isCorruptedPetitLyrics(header.provider(), lyrics)) {
+                discard(file);
+                return null;
+            }
+            return lyrics;
         } catch (Exception ex) {
             Logger.printDebug(() -> "Could not read lyrics from disk cache", ex);
             return null;
         }
+    }
+
+    private static boolean isCorruptedPetitLyrics(@Nullable String provider, Lyrics lyrics) {
+        if (provider == null || (!provider.equalsIgnoreCase("PetitLyrics") && !provider.toLowerCase(Locale.ROOT).contains("petitlyrics"))) {
+            return false;
+        }
+        int singleLetterTokens = 0;
+        int totalTokens = 0;
+        for (LyricsLine line : lyrics.lines()) {
+            if (line.words() != null && !line.words().isEmpty()) {
+                for (Word w : line.words()) {
+                    String wt = w.text();
+                    if (wt != null && !wt.isEmpty()) {
+                        totalTokens++;
+                        if (wt.length() == 1 && Character.isLetter(wt.charAt(0))
+                                && !LyricsRomanizer.containsJapanese(wt)
+                                && !LyricsRomanizer.containsHanzi(wt)
+                                && !LyricsRomanizer.containsHangul(wt)) {
+                            singleLetterTokens++;
+                        }
+                    }
+                }
+            }
+        }
+        return totalTokens >= 8 && ((float) singleLetterTokens / totalTokens) > 0.35f;
     }
 
     @Nullable

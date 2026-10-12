@@ -1971,6 +1971,7 @@ public final class LyricsRomanizer {
                 int bestK = 0;
                 for (int k = 0; k <= j; k++) {
                     int prevCost = dp[i - 1][k];
+                    if (prevCost == Integer.MAX_VALUE) continue;
                     int cost = prevCost + segmentCost(expClean, cleanTokens, k, j);
                     if (cost < bestCost) {
                         bestCost = cost;
@@ -1997,17 +1998,17 @@ public final class LyricsRomanizer {
         int segIdx = 0;
         while (segIdx < numSegs) {
             int firstSeg = segIdx;
-            int a = partition[firstSeg];
+            int a = Math.max(0, Math.min(numTokens, partition[firstSeg]));
             int lastSeg = firstSeg;
             while (lastSeg + 1 < numSegs && partition[lastSeg + 1] == a) {
                 lastSeg++;
             }
-            int b = partition[lastSeg + 1];
+            int b = Math.max(a, Math.min(numTokens, partition[Math.min(numSegs, lastSeg + 1)]));
 
             if (b > a) {
                 StringBuilder sb = new StringBuilder();
                 StringBuilder noSpaceSb = new StringBuilder();
-                for (int k = a; k < b; k++) {
+                for (int k = a; k < b && k < tokens.size(); k++) {
                     if (sb.length() > 0) sb.append(' ');
                     sb.append(tokens.get(k));
                     noSpaceSb.append(tokens.get(k));
@@ -2226,7 +2227,8 @@ public final class LyricsRomanizer {
         int totalLen = 0;
         for (String r : results) totalLen += r.length();
         if (totalLen < N && !results.isEmpty()) {
-            results.set(results.size() - 1, results.get(results.size() - 1) + target.substring(totalLen));
+            int safeStart = Math.min(target.length(), Math.max(0, totalLen));
+            results.set(results.size() - 1, results.get(results.size() - 1) + target.substring(safeStart));
         }
 
         return results;

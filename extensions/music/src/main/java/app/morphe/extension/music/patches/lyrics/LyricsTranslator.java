@@ -177,11 +177,26 @@ public final class LyricsTranslator {
                         }
                     }
 
+                    boolean hasMeaningfulAi = false;
                     if (aiResult != null && !aiResult.isEmpty()) {
+                        for (int i = 0; i < aiResult.size(); i++) {
+                            String l = aiResult.get(i);
+                            if (isSkipTranslation(l)) {
+                                aiResult.set(i, "");
+                            } else {
+                                hasMeaningfulAi = true;
+                            }
+                        }
+                    }
+
+                    if (hasMeaningfulAi) {
                         LyricsCache.putTranslationAI(track, source, language, lines, aiResult);
                         final List<String> finalAiResult = aiResult;
                         final String finalModel = modelUsed;
                         Utils.runOnMainThread(() -> callback.onTranslated(finalAiResult, false, true, finalModel));
+                        return;
+                    } else if (aiResult != null) {
+                        Utils.runOnMainThread(() -> callback.onTranslated(null, false, false, null));
                         return;
                     }
                 }
@@ -238,5 +253,13 @@ public final class LyricsTranslator {
                         throw new RuntimeException(ex);
                     }
                 });
+    }
+
+    public static boolean isSkipTranslation(@Nullable String s) {
+        if (s == null) return true;
+        String t = s.trim();
+        return t.isEmpty() || t.equalsIgnoreCase("SKIP") || t.equalsIgnoreCase("[SKIP]")
+                || t.equalsIgnoreCase("<SKIP>") || t.equalsIgnoreCase("(SKIP)")
+                || t.equalsIgnoreCase("SKIP.");
     }
 }

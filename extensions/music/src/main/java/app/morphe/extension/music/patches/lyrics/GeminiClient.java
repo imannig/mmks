@@ -234,6 +234,14 @@ public final class GeminiClient {
         return models;
     }
 
+    public static boolean isSkipToken(@Nullable String s) {
+        if (s == null) return true;
+        String t = s.trim();
+        return t.isEmpty() || t.equalsIgnoreCase("SKIP") || t.equalsIgnoreCase("[SKIP]")
+                || t.equalsIgnoreCase("<SKIP>") || t.equalsIgnoreCase("(SKIP)")
+                || t.equalsIgnoreCase("SKIP.");
+    }
+
     @Nullable
     private static List<String> parseNumberedLines(String text, int expectedCount) {
         if (text == null) return null;
@@ -245,11 +253,21 @@ public final class GeminiClient {
         if (end == 0) return null;
 
         List<String> list = new ArrayList<>(expectedCount);
+        boolean anyNonEmpty = false;
         for (int i = 0; i < raw.length && list.size() < expectedCount; i++) {
             String line = raw[i].trim();
             if (line.isEmpty()) continue;
             line = line.replaceFirst("^\\d+\\.\\s*", "").trim();
+            if (isSkipToken(line)) {
+                line = "";
+            } else {
+                anyNonEmpty = true;
+            }
             list.add(line);
+        }
+
+        if (!anyNonEmpty) {
+            return null;
         }
 
         while (list.size() < expectedCount) {

@@ -136,9 +136,6 @@ public final class LyricsPanelInstaller {
                 panelView.applyTextSize();
             } else if (Settings.LYRICS_HIDE_INFO.key.equals(key)) {
                 panelView.applyHideInfo();
-            } else if (Settings.LYRICS_HIDE_PLAYED.key.equals(key)
-                    || Settings.LYRICS_HIDE_UNPLAYED.key.equals(key)) {
-                panelView.applyLineOverlaySettings();
             }
         } catch (Throwable ex) {
             Logger.printException(() -> "Could not apply lyrics setting change", ex);

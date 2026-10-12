@@ -2484,7 +2484,47 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
 
         private void startExitAnimation() {
-            resetImmediate();
+            if (expandAnimator != null) expandAnimator.cancel();
+            if (exitAnimator != null) exitAnimator.cancel();
+
+            final long remaining = Math.max(100L, interval.nextStartMs() - LyricsManager.getInstance().getPositionMs());
+            final long duration = Math.min(GAP_EXIT_DURATION_MS, remaining);
+
+            exitAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
+            exitAnimator.setDuration(duration);
+            exitAnimator.setInterpolator(new LinearInterpolator());
+            exitAnimator.addUpdateListener(anim -> {
+                float p = (float) anim.getAnimatedValue();
+
+                if (p <= 0.35f) {
+                    float k = p / 0.35f;
+                    groupScale = 1.0f + 0.2f * (float) Math.sin(k * Math.PI / 2.0);
+                } else {
+                    float k = (p - 0.35f) / 0.65f;
+                    groupScale = Math.max(0f, 1.2f * (1.0f - (float) Math.sin(k * Math.PI / 2.0)));
+                }
+
+                // Collapse height and fade opacity towards the end of the exit phase
+                if (p < 0.625f) {
+                    heightFraction = 1.0f;
+                    groupAlpha = 1.0f;
+                } else {
+                    float k = (p - 0.625f) / 0.375f;
+                    float collapseEase = (float) Math.sin(k * Math.PI / 2.0);
+                    heightFraction = Math.max(0f, 1.0f - collapseEase);
+                    groupAlpha = Math.max(0f, 1.0f - collapseEase);
+                    updateViewHeight();
+                }
+
+                invalidate();
+            });
+            exitAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    resetImmediate();
+                }
+            });
+            exitAnimator.start();
         }
 
         private void resetImmediate() {

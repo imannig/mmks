@@ -1750,15 +1750,183 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         private static EmphasisState computeCharEmphasisState(
                 WordUnit u, int charIndex, int numChars, long livePosMs,
                 float restingLift, float textSize, boolean isSecondary) {
-            return new EmphasisState(1f, 0f, 0f);
+
+            long refStart = (u.wordStartMs != LyricsLine.NO_TIME) ? u.wordStartMs : u.startMs;
+            long refEnd = (u.wordEndMs != LyricsLine.NO_TIME) ? u.wordEndMs : u.endMs;
+            if (refStart == LyricsLine.NO_TIME) {
+                return new EmphasisState(1f, 0f, 0f);
+            }
+
+            final float sungLift = Math.max(2.5f, textSize * 0.045f);
+            final boolean growable = isWordGrowable(u, isSecondary);
+
+            if (growable) {
+                long finalDuration = Math.max(1L, refEnd - refStart);
+                float maxTotalDelay = finalDuration * 0.60f;
+                float baseDelayPerChar = Math.min(finalDuration * 0.09f, numChars > 1 ? maxTotalDelay / (numChars - 1) : 0f);
+                long charDelayMs = (long) (charIndex * baseDelayPerChar);
+                long charStartMs = refStart + charDelayMs;
+
+                if (livePosMs < charStartMs) {
+                    return new EmphasisState(1f, 0f, 0f);
+                }
+
+                long growDurationMs = Math.max(500L, Math.min(4500L, (long) (finalDuration * 1.5f)));
+                float elapsedMs = (float) (livePosMs - charStartMs);
+
+                // Dynamic word emphasis metrics
+                long minDuration = 1000L;
+                long maxDuration = 5000L;
+                float progress = Math.min(1f, Math.max(0f, (float) (finalDuration - minDuration) / (float) (maxDuration - minDuration)));
+                float easedProgress = progress * progress * progress;
+
+                float penaltyFactor = 1.0f;
+                float maxDecayRate = 0f;
+                boolean isLongWord = numChars > 5;
+                boolean isShortDuration = finalDuration < 1500L;
+                if (isLongWord || isShortDuration) {
+                    float decayStrength = 0f;
+                    if (isLongWord) decayStrength += Math.min((numChars - 5) / 3f, 1.0f) * 0.4f;
+                    if (isShortDuration) decayStrength += Math.max(0f, 1.0f - (finalDuration - 1000f) / 500f) * 0.4f;
+                    maxDecayRate = Math.min(decayStrength, 0.85f);
+                }
+
+                float positionInWord = numChars > 1 ? (float) charIndex / (float) (numChars - 1) : 0f;
+                float decayFactor = 1.0f - positionInWord * maxDecayRate;
+                float charProgress = easedProgress * penaltyFactor * decayFactor;
+
+                float baseGrowth = numChars <= 3 ? 0.07f : 0.05f;
+                float charMaxScale = 1.0f + baseGrowth + charProgress * 0.10f;
+                float charShadowIntensity = 0.40f + charProgress * 0.40f;
+                float normalizedGrowth = Math.min(1.0f, Math.max(0f, (charMaxScale - 1.0f) / 0.13f));
+
+                // Prominent floating wave for held/glow notes (~6.5px - 8.5px, ~2.5dp)
+                float charPeakLift = Math.max(5.5f, (textSize * 0.080f) + (normalizedGrowth * textSize * 0.045f));
+
+                // Sinusoidal rise, crest hold, and relaxed ease down to resting baseline:
+                // 0% -> 25%: smooth sinusoidal rise to peak (scale, lift, bloom)
+                // 25% -> 30%: hold at crest
+                // 30% -> 100%: very relaxed, slow ease down back to sung resting level (sungLift)
+                float t = elapsedMs / (float) Math.max(1L, growDurationMs);
+                if (t <= 0f) {
+                    return new EmphasisState(1f, 0f, 0f);
+                } else if (t < 0.25f) {
+                    float phase = t / 0.25f;
+                    float easeUp = 0.5f * (1.0f - (float) Math.cos(phase * Math.PI));
+                    float scale = 1.0f + (charMaxScale - 1.0f) * easeUp;
+                    float lift = charPeakLift * easeUp;
+                    float glowAlpha = 255f * charShadowIntensity * easeUp;
+                    return new EmphasisState(scale, lift, glowAlpha);
+                } else if (t <= 0.30f) {
+                    float scale = charMaxScale;
+                    float lift = charPeakLift;
+                    float glowAlpha = 255f * charShadowIntensity;
+                    return new EmphasisState(scale, lift, glowAlpha);
+                } else if (t <= 1.0f) {
+                    float phase = (t - 0.30f) / 0.70f;
+                    float easeDown = 0.5f * (1.0f - (float) Math.cos(phase * Math.PI));
+                    float scale = charMaxScale + (1.0f - charMaxScale) * easeDown;
+                    float lift = charPeakLift - (charPeakLift - sungLift) * easeDown;
+                    float glowAlpha = 255f * charShadowIntensity * (1.0f - easeDown);
+                    return new EmphasisState(scale, lift, glowAlpha);
+                } else {
+                    return new EmphasisState(1.0f, sungLift, 0f);
+                }
+            } else {
+                // Normal word-sync: smoothly glide up to sungLift and stay there (no overshoot, no jelly, no bounce-down)
+                long sylStart = (u.startMs != LyricsLine.NO_TIME) ? u.startMs : refStart;
+                long sylEnd = (u.endMs != LyricsLine.NO_TIME) ? u.endMs : refEnd;
+                long sylDuration = Math.max(1L, sylEnd - sylStart);
+
+                // Precise wipe timing for character position
+                float charRatio;
+                if (numChars == u.romaji.length() && !u.romaji.isEmpty() && u.romajiCharOffsets != null && u.romajiWidth > 0f) {
+                    charRatio = charIndex < u.romajiCharOffsets.length ? (u.romajiCharOffsets[charIndex] / u.romajiWidth) : 0f;
+                } else if (u.charOffsets != null && u.kanjiWidth > 0f && charIndex < u.charOffsets.length) {
+                    charRatio = u.charOffsets[charIndex] / u.kanjiWidth;
+                } else {
+                    charRatio = numChars > 1 ? ((float) charIndex / (float) numChars) : 0f;
+                }
+
+                long charStartMs = sylStart + (long) (charRatio * sylDuration);
+                if (livePosMs < charStartMs) {
+                    return new EmphasisState(1f, 0f, 0f);
+                }
+
+                long charAnimDur = Math.max(350L, Math.min(800L, (long) (sylDuration * 1.2f)));
+                float elapsed = (float) (livePosMs - charStartMs);
+                float t = Math.min(1.0f, Math.max(0f, elapsed / (float) charAnimDur));
+
+                // Smooth glide upwards to sungLift with smoothstep easing, then stay elevated
+                float easeUp = t * t * (3.0f - 2.0f * t);
+                float lift = sungLift * easeUp;
+                return new EmphasisState(1.0f, lift, 0f);
+            }
         }
 
         private static EmphasisState computeEmphasisState(WordUnit u, long livePosMs, float restingLift, float textSize, boolean isSecondary) {
-            return new EmphasisState(1f, 0f, 0f);
+            long refStart = (u.wordStartMs != LyricsLine.NO_TIME) ? u.wordStartMs : u.startMs;
+            long refEnd = (u.wordEndMs != LyricsLine.NO_TIME) ? u.wordEndMs : u.endMs;
+            if (refStart == LyricsLine.NO_TIME || livePosMs < refStart) {
+                return new EmphasisState(1f, 0f, 0f);
+            }
+
+            final float sungLift = Math.max(2.5f, textSize * 0.045f);
+            final boolean growable = isWordGrowable(u, isSecondary);
+            if (growable) {
+                long finalDuration = Math.max(1L, refEnd - refStart);
+                long growDurationMs = (long) (finalDuration * 1.5f);
+                float elapsedMs = (float) (livePosMs - refStart);
+                float t = elapsedMs / (float) Math.max(1L, growDurationMs);
+
+                float wordMaxScale = 1.06f;
+                float charPeakLift = Math.max(5.5f, textSize * 0.080f);
+                float maxGlowAlpha = 255f * 0.50f;
+
+                if (t <= 0f) {
+                    return new EmphasisState(1f, 0f, 0f);
+                } else if (t < 0.25f) {
+                    float phase = t / 0.25f;
+                    float easeUp = 0.5f * (1.0f - (float) Math.cos(phase * Math.PI));
+                    return new EmphasisState(1.0f + (wordMaxScale - 1.0f) * easeUp, charPeakLift * easeUp, maxGlowAlpha * easeUp);
+                } else if (t <= 0.30f) {
+                    return new EmphasisState(wordMaxScale, charPeakLift, maxGlowAlpha);
+                } else if (t <= 1.0f) {
+                    float phase = (t - 0.30f) / 0.70f;
+                    float easeDown = 0.5f * (1.0f - (float) Math.cos(phase * Math.PI));
+                    return new EmphasisState(wordMaxScale + (1.0f - wordMaxScale) * easeDown,
+                            charPeakLift - (charPeakLift - sungLift) * easeDown,
+                            maxGlowAlpha * (1.0f - easeDown));
+                } else {
+                    return new EmphasisState(1.0f, sungLift, 0f);
+                }
+            } else {
+                long sylStart = (u.startMs != LyricsLine.NO_TIME) ? u.startMs : refStart;
+                long sylEnd = (u.endMs != LyricsLine.NO_TIME) ? u.endMs : refEnd;
+                long sylDuration = Math.max(1L, sylEnd - sylStart);
+                if (livePosMs < sylStart) {
+                    return new EmphasisState(1f, 0f, 0f);
+                }
+
+                long wordAnimDur = Math.max(350L, Math.min(800L, (long) (sylDuration * 1.2f)));
+                float elapsed = (float) (livePosMs - sylStart);
+                float t = Math.min(1.0f, Math.max(0f, elapsed / (float) wordAnimDur));
+                float easeUp = t * t * (3.0f - 2.0f * t);
+                float lift = sungLift * easeUp;
+                return new EmphasisState(1.0f, lift, 0f);
+            }
         }
 
         private static boolean isWordGrowable(WordUnit u, boolean isSecondary) {
-            return false;
+            if (isSecondary) return false;
+            long dur = (u.wordEndMs != LyricsLine.NO_TIME && u.wordStartMs != LyricsLine.NO_TIME)
+                    ? (u.wordEndMs - u.wordStartMs)
+                    : (u.endMs - u.startMs);
+            if (dur < 1000L) return false;
+            String text = u.kanji.trim();
+            if (text.length() > 7) return false;
+            if (LyricsRomanizer.containsArabic(text) || LyricsRomanizer.containsHebrew(text)) return false;
+            return true;
         }
 
         private static final float WORD_FEATHER_PX = 8f;

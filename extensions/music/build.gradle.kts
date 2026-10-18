@@ -8,6 +8,7 @@ dependencies {
     compileOnly(project(":extensions:youtube:stub"))
     compileOnly(libs.annotation)
     compileOnly(libs.protobuf.javalite)
+    testImplementation("junit:junit:4.13.2")
 }
 
 configure<ApplicationExtension> {

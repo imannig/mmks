@@ -128,7 +128,7 @@ public final class LyricifyProvider implements LyricsProvider {
 
         final List<String> creditLines = new ArrayList<>();
         if (writer != null && !writer.isEmpty()) {
-            creditLines.add("Written by " + writer);
+            creditLines.add("Written by: " + writer);
         }
 
         final Map<String, List<LyricsLine>> translations;

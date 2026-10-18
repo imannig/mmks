@@ -224,7 +224,6 @@ public record Lyrics(List<LyricsLine> lines, String providerName, boolean synced
             List<Word> words = line.words();
             final int lastIdx = words.size() - 1;
             Word lastWord = words.get(lastIdx);
-            long effectiveEnd = lastWord.endMs();
             long nextStart = LyricsLine.NO_TIME;
             for (int j = i + 1; j < size; j++) {
                 final LyricsLine candidate = out.get(j);
@@ -234,18 +233,25 @@ public record Lyrics(List<LyricsLine> lines, String providerName, boolean synced
                 nextStart = candidate.startTimeMs();
                 break;
             }
-            if (nextStart != LyricsLine.NO_TIME) {
+            long effectiveEnd = lastWord.endMs();
+            if (effectiveEnd == LyricsLine.NO_TIME || effectiveEnd <= lastWord.startMs()) {
+                if (line.endTimeMs() != LyricsLine.NO_TIME && line.endTimeMs() > lastWord.startMs()) {
+                    effectiveEnd = line.endTimeMs();
+                } else if (nextStart != LyricsLine.NO_TIME && nextStart > lastWord.startMs()) {
+                    effectiveEnd = nextStart;
+                } else {
+                    effectiveEnd = lastWord.startMs() + 200L;
+                }
+            }
+
+            if (nextStart != LyricsLine.NO_TIME && nextStart > lastWord.startMs()) {
                 effectiveEnd = Math.min(effectiveEnd, nextStart);
             }
-            // Also respect the line's own endTimeMs if set.
-            if (line.endTimeMs() != LyricsLine.NO_TIME) {
+            if (line.endTimeMs() != LyricsLine.NO_TIME && line.endTimeMs() > lastWord.startMs()) {
                 effectiveEnd = Math.min(effectiveEnd, line.endTimeMs());
             }
-            // The floor keeps the last word on screen, but it must not reach into the next
-            // line: ranges crossing a line boundary chain the karaoke highlight over several
-            // lines at once, and the single slot the panel keeps for one retiring highlight
-            // then loses an unfinished line that nothing clears afterward.
-            long floor = lastWord.startMs() + 200;
+
+            long floor = lastWord.startMs() + 200L;
             if (nextStart != LyricsLine.NO_TIME && nextStart > lastWord.startMs()) {
                 floor = Math.min(floor, nextStart);
             }

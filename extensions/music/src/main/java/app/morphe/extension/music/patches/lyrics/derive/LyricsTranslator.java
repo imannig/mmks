@@ -204,8 +204,10 @@ public final class LyricsTranslator {
                         final String finalModel = modelUsed;
                         Utils.runOnMainThread(() -> callback.onTranslated(finalAiResult, false, true, finalModel));
                         return;
+                    } else if (aiResult != null) {
+                        Utils.runOnMainThread(() -> callback.onTranslated(null, false, false, null));
+                        return;
                     }
-                    // AI / DeepL request failed or returned empty; gracefully fall through to Google Translate.
                 }
 
                 List<String> translated = LyricsCache.getTranslation(

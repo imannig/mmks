@@ -700,4 +700,18 @@ Cookie yang diperlukan: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1P
   <!-- misc.spoof.appversion.spoofAppVersionPatch -->
   <string name="morphe_music_spoof_app_version_target_entry_8_23_51">8.23.51 - Nonaktifkan ikon tebal</string>
   <string name="morphe_music_spoof_app_version_target_entry_9_13_51">9.13.51 - Kembalikan tab Pemutar Berikutnya, Lirik, dan Terkait</string>
+    <string name="morphe_music_lyrics_dynamic_bg_vocal_pos_title">Penempatan Vokal Latar Dinamis</string>
+    <string name="morphe_music_lyrics_dynamic_bg_vocal_pos_summary">Menempatkan vokal latar di atas atau di bawah lirik utama secara dinamis berdasarkan waktu mulai vokal</string>
+    <string name="morphe_music_lyrics_blur_inactive_title">Buramkan Lirik Tidak Aktif</string>
+    <string name="morphe_music_lyrics_blur_inactive_summary">Menerapkan efek buram kedalaman bidang (depth-of-field) secara progresif pada baris lirik yang tidak aktif</string>
+    <string name="morphe_music_lyrics_lightweight_mode_title">Mode Ringan</string>
+    <string name="morphe_music_lyrics_lightweight_mode_summary">Menyederhanakan pendaran kata dan efek sapuan gradien untuk performa lebih lancar di perangkat spesifikasi rendah</string>
+    <string name="morphe_music_lyrics_hide_offscreen_title">Sembunyikan Baris Lirik di Luar Layar</string>
+    <string name="morphe_music_lyrics_hide_offscreen_summary">Menyembunyikan &amp; menghentikan semua animasi baris lirik yang sedang tidak terlihat di layar. Direkomendasikan untuk perangkat spesifikasi rendah.</string>
+    <string name="morphe_music_lyrics_dynamic_background_title">Aktifkan Latar Belakang Dinamis (Tampilan Pemutar)</string>
+    <string name="morphe_music_lyrics_dynamic_background_summary">Menerapkan latar belakang sampul album beranimasi saat pemutar diperluas. Pengaturan ini tidak berpengaruh pada mode layar penuh, di mana latar belakang dinamis selalu aktif.</string>
+    <string name="morphe_music_lyrics_audio_beat_sync_title">Denyut Ketukan Audio untuk Latar Belakang Dinamis</string>
+    <string name="morphe_music_lyrics_audio_beat_sync_summary">Membuat lapisan latar belakang dinamis berdenyut mengikuti ketukan audio. Jika Anda menggunakan Better Lyrics Shaders atau Visualizer lain, sebaiknya nonaktifkan pengaturan ini.</string>
+    <string name="morphe_music_lyrics_relax_scroll_title">Pengguliran Santai (Relax Scrolling)</string>
+    <string name="morphe_music_lyrics_relax_scroll_summary">Animasi pengguliran lebih lambat &amp; menonaktifkan animasi perubahan ukuran teks pada lirik.</string>
 </resources>

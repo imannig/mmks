@@ -26,6 +26,10 @@ public class WordAnimationUtilsTest {
         Assert.assertTrue(WordAnimationUtils.isCJK("東京"));
         Assert.assertTrue(WordAnimationUtils.isCJK("사랑"));
         Assert.assertFalse(WordAnimationUtils.isCJK("Hello"));
+        Assert.assertTrue(WordAnimationUtils.isNeedSplitOnly("東京"));
+        Assert.assertTrue(WordAnimationUtils.isNeedSplitOnly("사랑해!"));
+        Assert.assertFalse(WordAnimationUtils.isNeedSplitOnly("Hello"));
+        Assert.assertFalse(WordAnimationUtils.isNeedSplitOnly("Tokyo東京"));
         Assert.assertTrue(WordAnimationUtils.isRtlText("مرحبا"));
         Assert.assertTrue(WordAnimationUtils.isJoiningScript("مرحبا"));
         Assert.assertFalse(WordAnimationUtils.isRtlText("Hello"));
@@ -103,5 +107,27 @@ public class WordAnimationUtilsTest {
         Assert.assertEquals(1.0f, AppleWordAnimator.emphasisGlowOpacity(0.30f), 0.001f);
         Assert.assertEquals(0.3f, AppleWordAnimator.emphasisGlowOpacity(0.60f), 0.001f);
         Assert.assertEquals(0f, AppleWordAnimator.emphasisGlowOpacity(1.0f), 0.001f);
+    }
+
+    @Test
+    public void testSeparableBlur24x48() {
+        int w = DynamicBackgroundView.BUFFER_WIDTH;
+        int h = DynamicBackgroundView.BUFFER_HEIGHT;
+        Assert.assertEquals(24, w);
+        Assert.assertEquals(48, h);
+        Assert.assertEquals(50L, DynamicBackgroundView.FRAME_INTERVAL_MS);
+
+        int[] src = new int[w * h];
+        int[] temp = new int[w * h];
+        int[] dst = new int[w * h];
+        for (int i = 0; i < src.length; i++) {
+            src[i] = (i % 2 == 0) ? 0xFFFF0000 : 0xFF0000FF;
+        }
+        DynamicBackgroundView.fastSeparableBlur24x48(src, temp, dst, w, h, 2, 4);
+        int mid = dst[(h / 2) * w + (w / 2)];
+        int r = (mid >> 16) & 0xFF;
+        int b = mid & 0xFF;
+        Assert.assertTrue("Red channel should be blended around 127", r > 100 && r < 155);
+        Assert.assertTrue("Blue channel should be blended around 127", b > 100 && b < 155);
     }
 }

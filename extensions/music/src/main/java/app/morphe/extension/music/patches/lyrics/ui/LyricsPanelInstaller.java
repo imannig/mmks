@@ -110,6 +110,7 @@ public final class LyricsPanelInstaller {
             }
             if (Settings.LYRICS_SOURCE.key.equals(key)
                     || Settings.LYRICS_SPLIT_BACKGROUND.key.equals(key)
+                    || Settings.LYRICS_DYNAMIC_BG_VOCAL_POS.key.equals(key)
                     || LyricsFilterDefaults.LYRICS_CUSTOM_REGEX.key.equals(key)
                     || LyricsFilterDefaults.LYRICS_TEXT_FILTER.key.equals(key)
                     || LyricsFilterDefaults.LYRICS_CREDIT_LINE_REGEX.key.equals(key)) {
@@ -138,6 +139,14 @@ public final class LyricsPanelInstaller {
                 panelView.applyTextSize();
             } else if (Settings.LYRICS_HIDE_INFO.key.equals(key)) {
                 panelView.applyHideInfo();
+            } else if (Settings.LYRICS_DYNAMIC_BACKGROUND.key.equals(key)
+                    || Settings.LYRICS_AUDIO_BEAT_SYNC.key.equals(key)) {
+                panelView.applyDynamicBackgroundSettings();
+            } else if (Settings.LYRICS_BLUR_INACTIVE.key.equals(key)
+                    || Settings.LYRICS_LIGHTWEIGHT_MODE.key.equals(key)
+                    || Settings.LYRICS_HIDE_OFFSCREEN.key.equals(key)
+                    || Settings.LYRICS_RELAX_SCROLL.key.equals(key)) {
+                panelView.applyVisualAndScrollSettings();
             }
         } catch (Throwable ex) {
             Logger.printException(() -> "Could not apply lyrics setting change", ex);

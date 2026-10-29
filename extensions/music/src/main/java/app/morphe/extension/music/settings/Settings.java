@@ -246,8 +246,14 @@ public class Settings extends SharedYouTubeSettings {
     public static final BooleanSetting LYRICS_WORD_SYNC = new BooleanSetting("morphe_music_lyrics_word_sync", TRUE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_HIDE_PLAYED = new BooleanSetting("morphe_music_lyrics_hide_played", FALSE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_SPLIT_BACKGROUND = new BooleanSetting("morphe_music_lyrics_split_background", FALSE, false, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_DYNAMIC_BG_VOCAL_POS = new BooleanSetting("morphe_music_lyrics_dynamic_bg_vocal_pos", TRUE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_HIDE_UNPLAYED = new BooleanSetting("morphe_music_lyrics_hide_unplayed", FALSE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_BLUR_INACTIVE = new BooleanSetting("morphe_music_lyrics_blur_inactive", TRUE, false, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_LIGHTWEIGHT_MODE = new BooleanSetting("morphe_music_lyrics_lightweight_mode", FALSE, false, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_HIDE_OFFSCREEN = new BooleanSetting("morphe_music_lyrics_hide_offscreen", TRUE, false, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_DYNAMIC_BACKGROUND = new BooleanSetting("morphe_music_lyrics_dynamic_background", TRUE, false, parent(LYRICS_ENABLED));
+    public static final BooleanSetting LYRICS_AUDIO_BEAT_SYNC = new BooleanSetting("morphe_music_lyrics_audio_beat_sync", FALSE, false, parentsAll(parent(LYRICS_ENABLED), parent(LYRICS_DYNAMIC_BACKGROUND)));
+    public static final BooleanSetting LYRICS_RELAX_SCROLL = new BooleanSetting("morphe_music_lyrics_relax_scroll", FALSE, false, parent(LYRICS_ENABLED));
     public static final IntegerSetting LYRICS_TEXT_SIZE = new IntegerSetting("morphe_music_lyrics_text_size", 30, false, parent(LYRICS_ENABLED));
     public static final IntegerSetting LYRICS_OFFSET_MS = new IntegerSetting("morphe_music_lyrics_offset_ms", 0, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_SB_MATCHING = new BooleanSetting("morphe_music_lyrics_sb_matching", TRUE, false, parent(LYRICS_ENABLED));

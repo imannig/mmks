@@ -23,6 +23,8 @@ public final class LyricsRetiming {
     public static final long SCROLL_LOOK_AHEAD_MAX_MS = 500L;
     public static final long SCROLL_ANIMATION_MAX_DURATION_MS = 450L;
     public static final float SCROLL_DELAY_INCREMENT_RATIO = 0.1f;
+    public static final float SCROLL_DELAY_INCREMENT_RELAX_RATIO = 0.05f;
+    public static final float RELAX_SCROLL_DURATION_MULTIPLIER = 1.5f;
     public static final long HIGHLIGHT_LOOK_AHEAD_MS = 190L;
 
     public static final class RetimedEntry {
@@ -129,15 +131,28 @@ public final class LyricsRetiming {
     }
 
     public static long calculateScrollDuration(long scrollLookAheadMs) {
-        return Math.min(SCROLL_ANIMATION_MAX_DURATION_MS, Math.max(1L, scrollLookAheadMs));
+        return calculateScrollDuration(scrollLookAheadMs, false);
+    }
+
+    public static long calculateScrollDuration(long scrollLookAheadMs, boolean isRelaxMode) {
+        long base = Math.min(SCROLL_ANIMATION_MAX_DURATION_MS, Math.max(1L, scrollLookAheadMs));
+        return isRelaxMode ? Math.round(base * RELAX_SCROLL_DURATION_MULTIPLIER) : base;
     }
 
     public static float calculateScrollDelayIncrementFloat(long scrollDurationMs) {
-        return scrollDurationMs * SCROLL_DELAY_INCREMENT_RATIO;
+        return calculateScrollDelayIncrementFloat(scrollDurationMs, false);
+    }
+
+    public static float calculateScrollDelayIncrementFloat(long scrollDurationMs, boolean isRelaxMode) {
+        return scrollDurationMs * (isRelaxMode ? SCROLL_DELAY_INCREMENT_RELAX_RATIO : SCROLL_DELAY_INCREMENT_RATIO);
     }
 
     public static long calculateScrollDelayIncrement(long scrollDurationMs) {
-        return Math.round(scrollDurationMs * SCROLL_DELAY_INCREMENT_RATIO);
+        return calculateScrollDelayIncrement(scrollDurationMs, false);
+    }
+
+    public static long calculateScrollDelayIncrement(long scrollDurationMs, boolean isRelaxMode) {
+        return Math.round(calculateScrollDelayIncrementFloat(scrollDurationMs, isRelaxMode));
     }
 
     public static long[] buildAdjustedEndMaxByIndex(@Nullable List<RetimedEntry> retimedLyrics) {
@@ -148,7 +163,9 @@ public final class LyricsRetiming {
         long[] maxEnd = new long[size];
         long currentMax = Long.MIN_VALUE;
         for (int i = 0; i < size; i++) {
-            currentMax = Math.max(currentMax, retimedLyrics.get(i).adjustedEndTimeMs);
+            RetimedEntry r = retimedLyrics.get(i);
+            long effectiveEnd = Math.max(r.actualEndTimeMs, r.adjustedEndTimeMs);
+            currentMax = Math.max(currentMax, effectiveEnd);
             maxEnd[i] = currentMax;
         }
         return maxEnd;
@@ -193,7 +210,8 @@ public final class LyricsRetiming {
         while (index >= 0 && index < adjustedEndMaxByIndex.length
                 && adjustedEndMaxByIndex[index] + endToleranceMs >= positionMs) {
             RetimedEntry retimed = retimedLyrics.get(index);
-            if (positionMs <= retimed.adjustedEndTimeMs + endToleranceMs) {
+            long effectiveEnd = Math.max(retimed.actualEndTimeMs, retimed.adjustedEndTimeMs);
+            if (positionMs <= effectiveEnd + endToleranceMs) {
                 activeIndices.add(index);
             }
             index--;
@@ -358,8 +376,8 @@ public final class LyricsRetiming {
             for (int k = i; k <= clusterEnd; k++) {
                 clusterBaseEnd = Math.max(clusterBaseEnd, originalEndMs[k]);
             }
-
             long clusterFinalEnd = clusterBaseEnd;
+
             if (clusterEnd + 1 < len) {
                 long nextStart = lyrics.get(clusterEnd + 1).startTimeMs();
                 long gap = nextStart - clusterBaseEnd;
@@ -402,6 +420,7 @@ public final class LyricsRetiming {
                 newEndMs[j] = (cutoff != null) ? cutoff : clusterFinalEnd;
                 lastCompletedMainIdx = j;
             }
+
             i = clusterEnd + 1;
         }
 

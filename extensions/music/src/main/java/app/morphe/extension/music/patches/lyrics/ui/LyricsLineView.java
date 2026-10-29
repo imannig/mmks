@@ -30,6 +30,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.PathInterpolator;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Objects;
 
 import app.morphe.extension.music.patches.lyrics.LyricsManager;
+import app.morphe.extension.music.settings.Settings;
 import app.morphe.extension.music.patches.lyrics.model.LyricsLine;
 import app.morphe.extension.music.patches.lyrics.model.Word;
 import app.morphe.extension.music.patches.lyrics.ui.SpringEasing.LyPlusSpring;
@@ -130,8 +132,10 @@ class LyricsLineView extends TextView {
     @Nullable
     private StaticLayout romajiFallbackLayout = null;
 
+    private final LyricsScrollEngine.LyricsItemFlip mainVocalFlip = new LyricsScrollEngine.LyricsItemFlip();
     private final LyricsScrollEngine.LyricsItemFlip translationFlip = new LyricsScrollEngine.LyricsItemFlip();
     private float translationFlipOffsetY = 0f;
+    private boolean offscreenHidden = false;
 
     private final TextPaint romajiPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint unsungKanjiPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -350,8 +354,9 @@ class LyricsLineView extends TextView {
         }
 
         final float targetVisibility = isActive ? 1.0f : 0.0f;
+        final boolean relaxScroll = Settings.LYRICS_RELAX_SCROLL.get();
         final float targetScale;
-        if (isActive || !isAutoScrollEnabled) {
+        if (isActive || !isAutoScrollEnabled || relaxScroll) {
             targetScale = 1.0f;
         } else if (isLrcSynced) {
             if (distance == 0 || distance == 1) {
@@ -367,7 +372,7 @@ class LyricsLineView extends TextView {
             targetScale = 0.92f;
         }
 
-        if (instant || !lineLookInitialized) {
+        if (instant || !lineLookInitialized || (offscreenHidden && Settings.LYRICS_HIDE_OFFSCREEN.get())) {
             lineLookInitialized = true;
             if (lineLookAnimator != null) {
                 lineLookAnimator.cancel();
@@ -474,8 +479,12 @@ class LyricsLineView extends TextView {
     }
 
     public void resetInnerFlips() {
+        mainVocalFlip.reset(Float.NaN);
         translationFlip.reset(Float.NaN);
         translationFlipOffsetY = 0f;
+        if (!isSecondary) {
+            setTranslationY(0f);
+        }
     }
 
     public boolean syncInnerFlip(
@@ -483,36 +492,56 @@ class LyricsLineView extends TextView {
             int rowIndex,
             boolean enabled,
             float now) {
+        boolean active = false;
+        if (!isSecondary) {
+            engine.onInnerPlaced(mainVocalFlip, rowIndex, (float) getTop(), enabled);
+            float mainTransY = enabled ? mainVocalFlip.translation(now) : 0f;
+            setTranslationY(mainTransY);
+            if (mainVocalFlip.hasActiveLayers(now)) {
+                active = true;
+            }
+        }
         if (transLayout != null) {
             float transTop = totalMeasuredHeight - transLayout.getHeight();
             engine.onInnerPlaced(translationFlip, rowIndex, transTop, enabled);
             translationFlipOffsetY = enabled ? translationFlip.translation(now) : 0f;
-            boolean active = translationFlip.hasActiveLayers(now);
-            if (active || Math.abs(translationFlipOffsetY) > 0.1f) {
+            boolean transActive = translationFlip.hasActiveLayers(now);
+            if (transActive || Math.abs(translationFlipOffsetY) > 0.1f) {
                 invalidate();
             }
-            return active;
+            active = active || transActive;
         } else {
             translationFlip.reset(Float.NaN);
             translationFlipOffsetY = 0f;
-            return false;
         }
+        return active;
     }
 
     public boolean updateInnerFlipTranslation(float now) {
+        boolean active = false;
+        if (!isSecondary) {
+            float mainTransY = mainVocalFlip.translation(now);
+            if (Math.abs(mainTransY - getTranslationY()) > 0.1f) {
+                setTranslationY(mainTransY);
+            }
+            if (mainVocalFlip.hasActiveLayers(now)) {
+                active = true;
+            }
+        }
         if (transLayout == null) {
             translationFlipOffsetY = 0f;
-            return false;
+            return active;
         }
         float newOff = translationFlip.translation(now);
         if (Math.abs(newOff - translationFlipOffsetY) > 0.1f) {
             translationFlipOffsetY = newOff;
             invalidate();
         }
-        return translationFlip.hasActiveLayers(now);
+        return active || translationFlip.hasActiveLayers(now);
     }
 
     private boolean isSecondary = false;
+    private boolean bgBeforeMain = false;
     private int parentLineIndex = -1;
 
     public void setSecondary(boolean secondary) {
@@ -521,6 +550,56 @@ class LyricsLineView extends TextView {
 
     public boolean isSecondary() {
         return isSecondary;
+    }
+
+    public void setBgBeforeMain(boolean beforeMain) {
+        this.bgBeforeMain = beforeMain;
+    }
+
+    public boolean isBgBeforeMain() {
+        return bgBeforeMain;
+    }
+
+    private float computeSecondaryPivotY() {
+        float h = getHeight() > 0 ? (float) getHeight() : (float) fullSecondaryHeight;
+        return bgBeforeMain ? h : 0f;
+    }
+
+    /**
+     * 1:1 with YouLyPlus (--lyplus-bg-slide-y: -1.4em / +1.4em when .onTop):
+     * Secondary vocals slide down from behind the main vocal (or slide up from behind when bgBeforeMain).
+     */
+    private float computeSecondarySlideMaxY() {
+        float em = getTextSize() > 0f ? getTextSize() : Dim.dp(20);
+        return (bgBeforeMain ? 1f : -1f) * em * 1.35f;
+    }
+
+    private void updateSecondaryLayoutMargins(int fullH) {
+        if (!isSecondary) return;
+        ViewGroup.LayoutParams rawLp = getLayoutParams();
+        if (!(rawLp instanceof ViewGroup.MarginLayoutParams mlp)) return;
+        int spacingPx = Dim.dp(4);
+        int topM;
+        int bottomM;
+        if (secondaryLayoutVisible) {
+            topM = bgBeforeMain ? 0 : spacingPx;
+            bottomM = bgBeforeMain ? spacingPx : 0;
+        } else if (secondaryAnimatingExit && fullH > 0) {
+            if (bgBeforeMain) {
+                topM = 0;
+                bottomM = -fullH;
+            } else {
+                topM = spacingPx;
+                bottomM = -(fullH + spacingPx);
+            }
+        } else {
+            topM = 0;
+            bottomM = 0;
+        }
+        if (mlp.topMargin != topM || mlp.bottomMargin != bottomM) {
+            mlp.topMargin = topM;
+            mlp.bottomMargin = bottomM;
+        }
     }
 
     public void setParentLineIndex(int idx) {
@@ -533,6 +612,8 @@ class LyricsLineView extends TextView {
 
     private float secondaryExpandFraction = 1f;
     private boolean secondaryLayoutVisible = true;
+    private boolean secondaryAnimatingExit = false;
+    private int fullSecondaryHeight = 0;
     private int lastSecondaryReportedH = -1;
     @Nullable
     private ValueAnimator secondaryExpandAnimator;
@@ -541,13 +622,20 @@ class LyricsLineView extends TextView {
         float clamped = Math.max(0f, Math.min(1f, fraction));
         this.secondaryExpandFraction = clamped;
         boolean shouldShowLayout = clamped > 0.001f;
-        float revealScale = 0.8f + 0.2f * clamped;
+        if (!shouldShowLayout && this.lastSecondaryReportedH < 0) {
+            this.lastSecondaryReportedH = 0;
+        }
+        this.secondaryAnimatingExit = false;
+        float revealScale = 0.85f + 0.15f * clamped;
+        float slideY = computeSecondarySlideMaxY() * (1f - clamped);
         setPivotX(isGravityRightAligned() ? getWidth() : 0f);
-        setPivotY(0f);
+        setPivotY(computeSecondaryPivotY());
         setScaleX(revealScale);
         setScaleY(revealScale);
+        setTranslationY(slideY);
         if (this.secondaryLayoutVisible != shouldShowLayout) {
             this.secondaryLayoutVisible = shouldShowLayout;
+            updateSecondaryLayoutMargins(fullSecondaryHeight);
             requestLayout();
         }
         invalidate();
@@ -559,35 +647,45 @@ class LyricsLineView extends TextView {
 
     public void animateSecondaryExpansion(boolean expand) {
         float target = expand ? 1f : 0f;
-        if (secondaryExpandAnimator != null) {
-            secondaryExpandAnimator.cancel();
-            secondaryExpandAnimator = null;
-        }
-        if (Math.abs(secondaryExpandFraction - target) < 0.001f && secondaryLayoutVisible == expand) {
+        if (Math.abs(secondaryExpandFraction - target) < 0.001f
+                && secondaryLayoutVisible == expand
+                && secondaryExpandAnimator == null) {
             if (!expand) {
+                secondaryAnimatingExit = false;
                 if (getVisibility() != View.GONE) {
                     setVisibility(View.GONE);
                 }
                 setAlpha(0f);
+                setTranslationY(computeSecondarySlideMaxY());
             } else {
                 if (getVisibility() != View.VISIBLE) {
                     setVisibility(View.VISIBLE);
                 }
-                setAlpha(0.8f);
+                setAlpha(0.85f);
                 setScaleX(1f);
                 setScaleY(1f);
+                setTranslationY(0f);
             }
             return;
         }
+        if (secondaryExpandAnimator != null && secondaryLayoutVisible == expand) {
+            return;
+        }
+        if (secondaryExpandAnimator != null) {
+            secondaryExpandAnimator.cancel();
+            secondaryExpandAnimator = null;
+        }
 
         setPivotX(isGravityRightAligned() ? getWidth() : 0f);
-        setPivotY(0f);
+        setPivotY(computeSecondaryPivotY());
         float baseDuration = (scrollEngine != null)
                 ? Math.max(1f, (float) scrollEngine.getScrollDurationMs())
                 : 400f;
 
         if (expand) {
             secondaryLayoutVisible = true;
+            secondaryAnimatingExit = false;
+            updateSecondaryLayoutMargins(fullSecondaryHeight);
             if (getVisibility() != View.VISIBLE) {
                 setVisibility(View.VISIBLE);
             }
@@ -606,15 +704,17 @@ class LyricsLineView extends TextView {
                 float tMs = (Float) animation.getAnimatedValue();
                 float scaleProgress = startProgress + (1f - startProgress) * spring.value(tMs);
                 secondaryExpandFraction = Math.max(0f, Math.min(1f, scaleProgress));
-                float scale = Math.max(0f, 0.8f + 0.2f * scaleProgress);
+                float scale = Math.max(0f, 0.85f + 0.15f * scaleProgress);
+                float slideY = computeSecondarySlideMaxY() * (1f - scaleProgress);
                 setPivotX(isGravityRightAligned() ? getWidth() : 0f);
-                setPivotY(0f);
+                setPivotY(computeSecondaryPivotY());
                 setScaleX(scale);
                 setScaleY(scale);
+                setTranslationY(slideY);
 
                 float alphaFrac = Math.max(0f, Math.min(1f, tMs / (float) inAlphaMs));
                 float easedAlpha = LINEAR_OUT_SLOW_IN.getInterpolation(alphaFrac);
-                setAlpha(startAlpha + (0.8f - startAlpha) * easedAlpha);
+                setAlpha(startAlpha + (0.85f - startAlpha) * easedAlpha);
                 invalidate();
             });
             secondaryExpandAnimator.addListener(new AnimatorListenerAdapter() {
@@ -622,19 +722,25 @@ class LyricsLineView extends TextView {
                 public void onAnimationEnd(Animator animation) {
                     secondaryExpandAnimator = null;
                     secondaryExpandFraction = 1f;
-                    setAlpha(0.8f);
+                    setAlpha(0.85f);
                     setScaleX(1f);
                     setScaleY(1f);
+                    setTranslationY(0f);
                 }
             });
             secondaryExpandAnimator.start();
         } else {
             secondaryLayoutVisible = false;
+            secondaryAnimatingExit = true;
+            if (getVisibility() != View.VISIBLE) {
+                setVisibility(View.VISIBLE);
+            }
+            updateSecondaryLayoutMargins(fullSecondaryHeight);
             requestLayout();
 
             long outMs = Math.max(260L, Math.min(360L, Math.round(baseDuration * 0.8f)));
-            final float startProgress = secondaryExpandFraction;
-            final float startAlpha = getAlpha();
+            final float startProgress = Math.max(0.05f, secondaryExpandFraction);
+            final float startAlpha = Math.max(0.05f, getAlpha());
 
             secondaryExpandAnimator = ValueAnimator.ofFloat(0f, 1f);
             secondaryExpandAnimator.setDuration(outMs);
@@ -643,11 +749,13 @@ class LyricsLineView extends TextView {
                 float f = (Float) animation.getAnimatedValue();
                 float val = startProgress * (1f - f);
                 secondaryExpandFraction = val;
-                float scale = Math.max(0f, 0.8f + 0.2f * val);
+                float scale = Math.max(0f, 0.85f + 0.15f * val);
+                float slideY = computeSecondarySlideMaxY() * (1f - val);
                 setPivotX(isGravityRightAligned() ? getWidth() : 0f);
-                setPivotY(0f);
+                setPivotY(computeSecondaryPivotY());
                 setScaleX(scale);
                 setScaleY(scale);
+                setTranslationY(slideY);
                 setAlpha(startAlpha * (1f - f));
                 invalidate();
             });
@@ -655,9 +763,13 @@ class LyricsLineView extends TextView {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     secondaryExpandAnimator = null;
+                    secondaryAnimatingExit = false;
                     secondaryExpandFraction = 0f;
+                    setTranslationY(computeSecondarySlideMaxY());
                     setVisibility(View.GONE);
                     setAlpha(0f);
+                    updateSecondaryLayoutMargins(0);
+                    requestLayout();
                 }
             });
             secondaryExpandAnimator.start();
@@ -744,6 +856,42 @@ class LyricsLineView extends TextView {
         }
     }
 
+    public void setOffscreenHidden(boolean hidden) {
+        if (this.offscreenHidden == hidden) {
+            return;
+        }
+        this.offscreenHidden = hidden;
+        if (hidden && Settings.LYRICS_HIDE_OFFSCREEN.get()) {
+            if (lineLookAnimator != null) {
+                lineLookAnimator.cancel();
+                lineLookAnimator = null;
+                lookCurAlpha = lookToAlpha;
+                lookCurTransAlpha = lookToTransAlpha;
+                lookCurFocusedAlpha = lookToFocusedAlpha;
+                lookCurVisibility = lookToVisibility;
+                lookCurScale = lookToScale;
+            }
+            if (scaleAnimator != null) {
+                scaleAnimator.cancel();
+                scaleAnimator = null;
+            }
+            if (blurAnimator != null) {
+                blurAnimator.cancel();
+                blurAnimator = null;
+            }
+            setRenderEffectCompat(null);
+            invalidate();
+        } else {
+            applyCurrentLineLookToView();
+            setBlurRadius(currentBlurRadius);
+            invalidate();
+        }
+    }
+
+    public boolean isOffscreenHidden() {
+        return offscreenHidden;
+    }
+
     public void animateBlur(float targetRadius, long duration) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return;
@@ -751,6 +899,11 @@ class LyricsLineView extends TextView {
         if (blurAnimator != null) {
             blurAnimator.cancel();
             blurAnimator = null;
+        }
+        if (offscreenHidden && Settings.LYRICS_HIDE_OFFSCREEN.get()) {
+            this.currentBlurRadius = targetRadius;
+            setRenderEffectCompat(null);
+            return;
         }
         if (Math.abs(currentBlurRadius - targetRadius) < 0.1f) {
             setBlurRadius(targetRadius);
@@ -776,7 +929,7 @@ class LyricsLineView extends TextView {
     public void setBlurRadius(float radius) {
         this.currentBlurRadius = radius;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (radius < 0.5f) {
+            if (radius < 0.5f || (offscreenHidden && Settings.LYRICS_HIDE_OFFSCREEN.get())) {
                 setRenderEffectCompat(null);
             } else {
                 setRenderEffectCompat(LyricsPanelView.getCachedBlurEffect(radius));
@@ -1516,25 +1669,34 @@ class LyricsLineView extends TextView {
             }
             int padV = getExtendedPaddingTop() + getExtendedPaddingBottom();
             int fullH = Math.max(totalMeasuredHeight + padV, getSuggestedMinimumHeight());
-            int reportedH = (isSecondary && !secondaryLayoutVisible) ? 0 : fullH;
             if (isSecondary) {
-                if (lastSecondaryReportedH >= 0 && lastSecondaryReportedH != reportedH && scrollEngine != null) {
-                    scrollEngine.recordLayoutShift(this, reportedH - lastSecondaryReportedH);
+                fullSecondaryHeight = fullH;
+                int spacingPx = Dim.dp(4);
+                int netReportedH = secondaryLayoutVisible ? (fullH + spacingPx) : 0;
+                if (lastSecondaryReportedH >= 0 && lastSecondaryReportedH != netReportedH && scrollEngine != null) {
+                    scrollEngine.recordLayoutShift(this, netReportedH - lastSecondaryReportedH);
                 }
-                lastSecondaryReportedH = reportedH;
+                lastSecondaryReportedH = netReportedH;
+                updateSecondaryLayoutMargins(fullH);
+                int canvasH = (secondaryLayoutVisible || secondaryAnimatingExit) ? fullH : 0;
+                setMeasuredDimension(width, canvasH);
+                return;
             }
-            setMeasuredDimension(width, reportedH);
+            setMeasuredDimension(width, fullH);
             return;
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         if (isSecondary) {
             int fullH = getMeasuredHeight();
-            int reportedH = secondaryLayoutVisible ? fullH : 0;
-            if (lastSecondaryReportedH >= 0 && lastSecondaryReportedH != reportedH && scrollEngine != null) {
-                scrollEngine.recordLayoutShift(this, reportedH - lastSecondaryReportedH);
+            fullSecondaryHeight = fullH;
+            int spacingPx = Dim.dp(4);
+            int netReportedH = secondaryLayoutVisible ? (fullH + spacingPx) : 0;
+            if (lastSecondaryReportedH >= 0 && lastSecondaryReportedH != netReportedH && scrollEngine != null) {
+                scrollEngine.recordLayoutShift(this, netReportedH - lastSecondaryReportedH);
             }
-            lastSecondaryReportedH = reportedH;
-            if (!secondaryLayoutVisible) {
+            lastSecondaryReportedH = netReportedH;
+            updateSecondaryLayoutMargins(fullH);
+            if (!secondaryLayoutVisible && !secondaryAnimatingExit) {
                 setMeasuredDimension(getMeasuredWidth(), 0);
             }
         }
@@ -1570,6 +1732,9 @@ class LyricsLineView extends TextView {
     }
 
     private void onDrawWordUnits(Canvas canvas) {
+        if (offscreenHidden && Settings.LYRICS_HIDE_OFFSCREEN.get()) {
+            return;
+        }
         if (isSecondary && secondaryExpandFraction <= 0.001f && !secondaryLayoutVisible) {
             return;
         }
@@ -1673,7 +1838,7 @@ class LyricsLineView extends TextView {
         super.onSizeChanged(w, h, oldw, oldh);
         if (isSecondary) {
             setPivotX(isGravityRightAligned() ? w : 0f);
-            setPivotY(0f);
+            setPivotY(bgBeforeMain ? (float) h : 0f);
         } else {
             setPivotX(computeLinePivotX(w));
             setPivotY(h * 0.5f);
@@ -1903,6 +2068,9 @@ class LyricsLineView extends TextView {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (offscreenHidden && Settings.LYRICS_HIDE_OFFSCREEN.get()) {
+            return;
+        }
         if (isSecondary && secondaryExpandFraction <= 0.001f && !secondaryLayoutVisible) {
             return;
         }

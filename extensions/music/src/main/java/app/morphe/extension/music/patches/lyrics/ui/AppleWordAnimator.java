@@ -40,6 +40,7 @@ import app.morphe.extension.music.patches.lyrics.ui.WordAnimationUtils.TintFilte
 import app.morphe.extension.music.patches.lyrics.ui.WordAnimationUtils.VisualCluster;
 import app.morphe.extension.music.patches.lyrics.ui.WordAnimationUtils.WipeResult;
 import app.morphe.extension.music.patches.lyrics.ui.WordAnimationUtils.WordTimestamp;
+import app.morphe.extension.music.settings.Settings;
 
 public final class AppleWordAnimator {
 
@@ -49,6 +50,7 @@ public final class AppleWordAnimator {
 
     private static final Interpolator FAST_OUT_SLOW_IN = new PathInterpolator(0.4f, 0f, 0.2f, 1f);
     private static final Interpolator LINEAR_OUT_SLOW_IN = new PathInterpolator(0f, 0f, 0.2f, 1f);
+    private static final Interpolator ELEVATION_EASE = new PathInterpolator(0.22f, 1f, 0.36f, 1f);
 
     private static final String EMPHASIS_TRAILING_PUNCT = "!?.,;:~…‥。、！？";
 
@@ -337,8 +339,9 @@ public final class AppleWordAnimator {
         this.isBackground = isBackground;
         this.alignment = alignment;
         this.fontSizePx = basePaint.getTextSize();
+        final boolean isLightweight = Settings.LYRICS_LIGHTWEIGHT_MODE.get();
 
-        if (style == LyricsAnimationStyle.SIMPLE) {
+        if (style == LyricsAnimationStyle.SIMPLE || isLightweight) {
             this.gradientWidth = fontSizePx * 1.25f;
             this.extraPaddingPx = fontSizePx * 0.3f;
         } else if (style == LyricsAnimationStyle.EXPRESSIVE) {
@@ -702,7 +705,7 @@ public final class AppleWordAnimator {
                 String wordText = wordTextSb.toString();
 
                 List<List<ClusterMeta>> charGroups = new ArrayList<>();
-                if (!isBackground && !WordAnimationUtils.isRtlText(wordText)) {
+                if (!isBackground && !Settings.LYRICS_LIGHTWEIGHT_MODE.get() && !WordAnimationUtils.isRtlText(wordText) && !WordAnimationUtils.isNeedSplitOnly(wordText)) {
                     List<ClusterMeta> wordMetas = metasInRange(metaList, word.startIndex, word.endIndex);
                     for (int m = 0; m < wordMetas.size(); m++) {
                         ClusterMeta cm = wordMetas.get(m);
@@ -1218,7 +1221,7 @@ public final class AppleWordAnimator {
                 if (mode == 1) {
                     float elapsed = Math.max(0f, (float) (nowUptimeMs - heavyRelAnimStartMs[i]) - heavyRelAnimDelayMs[i]);
                     float t = Math.max(0f, Math.min(1f, elapsed / Math.max(1f, heavyRelAnimDurationMs[i])));
-                    float eased = FAST_OUT_SLOW_IN.getInterpolation(t);
+                    float eased = t * t * (3f - 2f * t);
                     clusterReleaseValues[i] = heavyRelAnimFrom[i] + (heavyRelAnimTarget[i] - heavyRelAnimFrom[i]) * eased;
                 } else if (mode == 2) {
                     float elapsed = (float) (nowUptimeMs - heavyRelAnimStartMs[i]) - heavyRelAnimDelayMs[i];
@@ -1293,7 +1296,7 @@ public final class AppleWordAnimator {
                 sylElevCurrent[sIdx] = sylElevAnimTarget[sIdx];
             } else {
                 float t = elapsed / 1000f;
-                float eased = FAST_OUT_SLOW_IN.getInterpolation(t);
+                float eased = ELEVATION_EASE.getInterpolation(t);
                 sylElevCurrent[sIdx] = sylElevAnimFrom[sIdx] + (sylElevAnimTarget[sIdx] - sylElevAnimFrom[sIdx]) * eased;
             }
         }
@@ -1335,7 +1338,8 @@ public final class AppleWordAnimator {
         float safeSpeed = Math.max(0.1f, playbackSpeed);
 
         // mask prewarm given 1.5ms budget per frame so new active line entering dont cause frame drop
-        if ((isActiveLine || prewarmMasks) && style != LyricsAnimationStyle.SIMPLE) {
+        final boolean isLightweight = Settings.LYRICS_LIGHTWEIGHT_MODE.get();
+        if (!isLightweight && (isActiveLine || prewarmMasks) && style != LyricsAnimationStyle.SIMPLE) {
             maskCacheStore.prewarmStep(
                     clusters.size(),
                     1_500_000L,

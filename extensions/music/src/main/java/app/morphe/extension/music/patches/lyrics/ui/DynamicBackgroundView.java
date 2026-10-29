@@ -36,21 +36,36 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import app.morphe.extension.music.patches.lyrics.LyricsManager;
+import app.morphe.extension.music.settings.Settings;
 import app.morphe.extension.shared.Logger;
 
+/**
+ * 1:1 behavioral port of YouLyPlus (dynamicBkg.js) and Archive.zip (LyricsImageRenderer.kt / LyricsImage.kt)
+ * with CPU optimization:
+ * - Downscaled render & blur buffer: 24x48 (1,152 pixels total)
+ * - Multi-pass separable CPU box blur (Gaussian approximation) on the 24x48 pixel array
+ * - Animation frame rate capped at 20 FPS (50ms interval)
+ * - Supports Enable Dynamic Background (Player View), Audio-based Beat Pulse, and Lightweight Mode toggles
+ */
 public final class DynamicBackgroundView extends View {
 
-    private static final int BUFFER_SIZE = 256;
-    private static final int BLUR_RADIUS = 14;
+    public static final int BUFFER_WIDTH = 24;
+    public static final int BUFFER_HEIGHT = 48;
+    private static final int ARTWORK_SIZE = 48;
+    private static final int BLUR_RADIUS_X = 2;
+    private static final int BLUR_RADIUS_Y = 4;
+    public static final long FRAME_INTERVAL_MS = 50L; // 20 FPS cap (1000ms / 20 = 50ms)
+
     private static final float TWO_PI = (float) (Math.PI * 2.0);
     private static final long ARTWORK_TRANSITION_DURATION_MS = 1000L;
     private static final long ROTATION_TICK_INTERVAL_MS = 50L;
 
+    // 1:1 constants from YouLyPlus dynamicBkg.js & Archive.zip LyricsImageRenderer.kt
     private static final float ROTATION_POWER = 0.8f;
-    private static final float[] ROTATION_SPEEDS = new float[]{-0.10f, 0.18f, 0.32f};
+    private static final float[] ROTATION_SPEEDS = new float[]{-0.10f, 0.10f, 0.25f};
     private static final float[] INITIAL_ROTATIONS = new float[]{0.3f, -2.1f, 2.4f};
     private static final float[] LAYER_SCALES = new float[]{1.4f, 1.26f, 1.26f};
-    private static final float[] PERIMETER_SPEEDS = new float[]{0.09f, 0.012f, 0.02f};
+    private static final float[] PERIMETER_SPEEDS = new float[]{0.09f, 0.006f, 0.01f};
     private static final float[] PERIMETER_DIRECTION = new float[]{-1.0f, 1.0f, 1.0f};
     private static final float[] LAYER_BASE_POSITIONS = new float[]{0.0f, 0.0f, 0.75f, -0.75f, -0.75f, 0.75f};
 
@@ -94,9 +109,9 @@ public final class DynamicBackgroundView extends View {
     private final Bitmap bufferBitmap;
     private final Canvas bufferCanvas;
     private final Bitmap blurBitmap;
-    private final int[] pixelsSrc = new int[BUFFER_SIZE * BUFFER_SIZE];
-    private final int[] pixelsDst = new int[BUFFER_SIZE * BUFFER_SIZE];
-    private final int[] pixelsTemp = new int[BUFFER_SIZE * BUFFER_SIZE];
+    private final int[] pixelsSrc = new int[BUFFER_WIDTH * BUFFER_HEIGHT];
+    private final int[] pixelsDst = new int[BUFFER_WIDTH * BUFFER_HEIGHT];
+    private final int[] pixelsTemp = new int[BUFFER_WIDTH * BUFFER_HEIGHT];
     private final Bitmap defaultArtwork;
 
     private final Paint layerPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG);
@@ -114,7 +129,7 @@ public final class DynamicBackgroundView extends View {
     private float beatEnergyBaseline = 0.0f;
 
     private final float[] cachedLayerRots = new float[3];
-    private final float[] cachedLayerScales = new float[3];
+    private final float[] cachedLayerSmoothBS = new float[3];
     private final float[] cachedLayerPosX = new float[3];
     private final float[] cachedLayerPosY = new float[3];
 
@@ -122,6 +137,7 @@ public final class DynamicBackgroundView extends View {
     private long artworkTransitionStartUptimeMs = 0L;
     private long lastDrawTimeMs = 0L;
     private long lastRotationTickUptimeMs = 0L;
+    private boolean nextFrameScheduled = false;
 
     private float beatPulse = 0.0f;
     private float visualizerPulse = 0.0f;
@@ -135,15 +151,25 @@ public final class DynamicBackgroundView extends View {
     private String currentVideoId;
     private boolean isAttached;
 
+    private final Runnable frameTickRunnable = new Runnable() {
+        @Override
+        public void run() {
+            nextFrameScheduled = false;
+            if (isAttached && getVisibility() == VISIBLE && Settings.LYRICS_DYNAMIC_BACKGROUND.get()) {
+                invalidate();
+            }
+        }
+    };
+
     public DynamicBackgroundView(Context context) {
         super(context);
         setWillNotDraw(false);
 
-        bufferBitmap = Bitmap.createBitmap(BUFFER_SIZE, BUFFER_SIZE, Bitmap.Config.ARGB_8888);
+        bufferBitmap = Bitmap.createBitmap(BUFFER_WIDTH, BUFFER_HEIGHT, Bitmap.Config.ARGB_8888);
         bufferCanvas = new Canvas(bufferBitmap);
-        blurBitmap = Bitmap.createBitmap(BUFFER_SIZE, BUFFER_SIZE, Bitmap.Config.ARGB_8888);
+        blurBitmap = Bitmap.createBitmap(BUFFER_WIDTH, BUFFER_HEIGHT, Bitmap.Config.ARGB_8888);
 
-        defaultArtwork = Bitmap.createBitmap(BUFFER_SIZE, BUFFER_SIZE, Bitmap.Config.ARGB_8888);
+        defaultArtwork = Bitmap.createBitmap(ARTWORK_SIZE, ARTWORK_SIZE, Bitmap.Config.ARGB_8888);
         Canvas defCanvas = new Canvas(defaultArtwork);
         defCanvas.drawColor(0xFF1E1E28);
 
@@ -154,6 +180,10 @@ public final class DynamicBackgroundView extends View {
         postProcessPaint.setColorFilter(new ColorMatrixColorFilter(createPostProcessMatrix()));
     }
 
+    /**
+     * Post-process color matrix matching Archive.zip blurLyricsArtwork & YouLyPlus post-pass:
+     * saturation boost (3.0x), contrast (0.95x), brightness (0.70x).
+     */
     private static ColorMatrix createPostProcessMatrix() {
         ColorMatrix satMatrix = new ColorMatrix();
         satMatrix.setSaturation(3.0f);
@@ -174,6 +204,45 @@ public final class DynamicBackgroundView extends View {
         finalMatrix.postConcat(satMatrix);
         finalMatrix.postConcat(cbMatrix);
         return finalMatrix;
+    }
+
+    public void onSettingsChanged() {
+        if (!Settings.LYRICS_DYNAMIC_BACKGROUND.get()) {
+            cancelScheduledFrame();
+            releaseVisualizer();
+            invalidate();
+            return;
+        }
+        if (Settings.LYRICS_AUDIO_BEAT_SYNC.get() && isAttached && getVisibility() == VISIBLE) {
+            tryInitVisualizer();
+        } else {
+            releaseVisualizer();
+            beatPulse = 0.0f;
+            visualizerPulse = 0.0f;
+        }
+        scheduleNextFrame(0L);
+    }
+
+    private void scheduleNextFrame(long delayMs) {
+        if (!isAttached || getVisibility() != VISIBLE || !Settings.LYRICS_DYNAMIC_BACKGROUND.get()) {
+            return;
+        }
+        if (delayMs <= 0L) {
+            cancelScheduledFrame();
+            invalidate();
+            return;
+        }
+        if (!nextFrameScheduled) {
+            nextFrameScheduled = true;
+            mainHandler.postDelayed(frameTickRunnable, delayMs);
+        }
+    }
+
+    private void cancelScheduledFrame() {
+        if (nextFrameScheduled) {
+            mainHandler.removeCallbacks(frameTickRunnable);
+            nextFrameScheduled = false;
+        }
     }
 
     public void setArtwork(@Nullable Bitmap bitmap, @Nullable String videoId, @Nullable String title, @Nullable String artist) {
@@ -214,7 +283,7 @@ public final class DynamicBackgroundView extends View {
                 try (InputStream is = conn.getInputStream()) {
                     Bitmap downloaded = BitmapFactory.decodeStream(is);
                     if (downloaded != null) {
-                        Bitmap scaled = Bitmap.createScaledBitmap(downloaded, BUFFER_SIZE, BUFFER_SIZE, true);
+                        Bitmap scaled = Bitmap.createScaledBitmap(downloaded, ARTWORK_SIZE, ARTWORK_SIZE, true);
                         if (scaled != downloaded) {
                             downloaded.recycle();
                         }
@@ -240,10 +309,10 @@ public final class DynamicBackgroundView extends View {
         Bitmap normalized;
         if (newBmp == defaultArtwork) {
             normalized = defaultArtwork;
-        } else if (newBmp.getWidth() == BUFFER_SIZE && newBmp.getHeight() == BUFFER_SIZE) {
+        } else if (newBmp.getWidth() == ARTWORK_SIZE && newBmp.getHeight() == ARTWORK_SIZE) {
             normalized = newBmp;
         } else {
-            normalized = Bitmap.createScaledBitmap(newBmp, BUFFER_SIZE, BUFFER_SIZE, true);
+            normalized = Bitmap.createScaledBitmap(newBmp, ARTWORK_SIZE, ARTWORK_SIZE, true);
         }
 
         if (normalized != defaultArtwork) {
@@ -259,13 +328,20 @@ public final class DynamicBackgroundView extends View {
             currentArtwork = normalized;
             artworkTransitionProgress = 1.0f;
         }
-        postInvalidateOnAnimation();
+        scheduleNextFrame(0L);
     }
 
     public void onBeatTrigger(float strength) {
+        if (Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+            visualizerPulse = Math.max(visualizerPulse, Math.max(0f, Math.min(1f, strength)));
+        }
     }
 
     private void tryInitVisualizer() {
+        if (!Settings.LYRICS_DYNAMIC_BACKGROUND.get() || !Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+            releaseVisualizer();
+            return;
+        }
         if (visualizer != null) return;
         Context ctx = getContext();
         if (ctx == null) return;
@@ -282,6 +358,10 @@ public final class DynamicBackgroundView extends View {
             visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
                 @Override
                 public void onWaveFormDataCapture(Visualizer v, byte[] waveform, int samplingRate) {
+                    if (!Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+                        visualizerPulse = 0.0f;
+                        return;
+                    }
                     if (waveform != null && waveform.length > 0) {
                         int maxDiff = 0;
                         for (byte b : waveform) {
@@ -318,14 +398,19 @@ public final class DynamicBackgroundView extends View {
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         isAttached = true;
-        tryInitVisualizer();
-        postInvalidateOnAnimation();
+        lastDrawTimeMs = 0L;
+        lastRotationTickUptimeMs = 0L;
+        if (Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+            tryInitVisualizer();
+        }
+        scheduleNextFrame(0L);
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         isAttached = false;
+        cancelScheduledFrame();
         releaseVisualizer();
     }
 
@@ -333,14 +418,28 @@ public final class DynamicBackgroundView extends View {
     protected void onVisibilityChanged(@NonNull View changedView, int visibility) {
         super.onVisibilityChanged(changedView, visibility);
         if (visibility == VISIBLE && isAttached) {
-            tryInitVisualizer();
-            postInvalidateOnAnimation();
+            if (Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+                tryInitVisualizer();
+            }
+            scheduleNextFrame(0L);
         } else {
+            cancelScheduledFrame();
             releaseVisualizer();
         }
     }
 
     private void processAudioPulse() {
+        if (!Settings.LYRICS_AUDIO_BEAT_SYNC.get()) {
+            beatPulse = 0.0f;
+            visualizerPulse = 0.0f;
+            if (visualizer != null) {
+                releaseVisualizer();
+            }
+            return;
+        }
+        if (visualizer == null && isAttached && getVisibility() == VISIBLE) {
+            tryInitVisualizer();
+        }
         boolean isPlaying = LyricsManager.getInstance().isPlaying();
         if (isPlaying && visualizerPulse > 0.001f) {
             beatPulse = visualizerPulse;
@@ -350,25 +449,49 @@ public final class DynamicBackgroundView extends View {
         }
     }
 
+    /**
+     * Computes aspect-corrected layer scale factor matching YouLyPlus _layerSizeFactor
+     * and Archive.zip LyricsImageRenderer.layerSizeFactor.
+     */
+    private static float computeLayerSizeFactor(int layerIndex, float aspectScaleX, float aspectScaleY, float smoothBeatScale) {
+        float bx = Math.abs(LAYER_BASE_POSITIONS[layerIndex * 2]);
+        float by = Math.abs(LAYER_BASE_POSITIONS[layerIndex * 2 + 1]);
+        float reachX = 1.0f + bx;
+        float reachY = 1.0f + by;
+        float hypot = (float) Math.hypot(reachX * aspectScaleX, reachY * aspectScaleY);
+        return hypot * LAYER_SCALES[layerIndex] + smoothBeatScale * BEAT_SCALE_BOOST[layerIndex];
+    }
+
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
+        if (!Settings.LYRICS_DYNAMIC_BACKGROUND.get()) {
+            return;
+        }
         final int w = getWidth();
         final int h = getHeight();
         if (w <= 0 || h <= 0) return;
 
         final long now = SystemClock.uptimeMillis();
-        final float elapsedSec = (lastDrawTimeMs > 0) ? Math.min((now - lastDrawTimeMs) / 1000.0f, 0.1f) : 0.016f;
+        final boolean isLightweight = Settings.LYRICS_LIGHTWEIGHT_MODE.get();
+        final boolean isPlaying = LyricsManager.getInstance().isPlaying();
+        final float elapsedSec = (lastDrawTimeMs > 0)
+                ? Math.min((now - lastDrawTimeMs) / 1000.0f, 0.1f)
+                : (FRAME_INTERVAL_MS / 1000.0f);
         lastDrawTimeMs = now;
 
-        if (lastRotationTickUptimeMs == 0L) {
+        if (!isLightweight && isPlaying) {
+            if (lastRotationTickUptimeMs == 0L) {
+                lastRotationTickUptimeMs = now;
+            } else if (now - lastRotationTickUptimeMs >= ROTATION_TICK_INTERVAL_MS) {
+                long ticks = (now - lastRotationTickUptimeMs) / ROTATION_TICK_INTERVAL_MS;
+                globalLiquidRotationTimeMs += ticks * ROTATION_TICK_INTERVAL_MS;
+                lastRotationTickUptimeMs += ticks * ROTATION_TICK_INTERVAL_MS;
+            }
+        } else {
             lastRotationTickUptimeMs = now;
-        } else if (now - lastRotationTickUptimeMs >= ROTATION_TICK_INTERVAL_MS) {
-            long ticks = (now - lastRotationTickUptimeMs) / ROTATION_TICK_INTERVAL_MS;
-            globalLiquidRotationTimeMs += ticks * ROTATION_TICK_INTERVAL_MS;
-            lastRotationTickUptimeMs += ticks * ROTATION_TICK_INTERVAL_MS;
         }
-        final float currentTime = globalLiquidRotationTimeMs / 1000.0f;
+        final float currentTime = isLightweight ? 0.0f : (globalLiquidRotationTimeMs / 1000.0f);
 
         if (artworkTransitionProgress < 1.0f) {
             if (artworkTransitionStartUptimeMs > 0L) {
@@ -389,7 +512,9 @@ public final class DynamicBackgroundView extends View {
         final float decaySpeed = BEAT_SCALE_DECAY;
 
         for (int i = 0; i < 3; i++) {
-            layerPerimTime[i] += elapsedSec * (1.0f + pulse * BEAT_SPD_BOOST[i]);
+            if (!isLightweight && isPlaying) {
+                layerPerimTime[i] += elapsedSec * (1.0f + pulse * BEAT_SPD_BOOST[i]);
+            }
 
             float speed = relativePulse > layerBeatScale[i] ? attackSpeed : decaySpeed;
             float delta = Math.min(1.0f, speed * elapsedSec);
@@ -407,35 +532,45 @@ public final class DynamicBackgroundView extends View {
             float bx = LAYER_BASE_POSITIONS[i * 2];
             float by = LAYER_BASE_POSITIONS[i * 2 + 1];
 
-            float offset = i * 0.33f;
-            float t = ((offset + PERIMETER_DIRECTION[i] * PERIMETER_SPEEDS[i] * layerPerimTime[i]) % 1.0f);
-            if (t < 0.0f) t += 1.0f;
-            float angle = t * TWO_PI;
-            float px = Math.abs(bx) * (float) Math.cos(angle);
-            float py = Math.abs(by) * (float) Math.sin(angle);
+            float px;
+            float py;
+            if (isLightweight) {
+                px = bx;
+                py = by;
+            } else {
+                float offset = i * 0.33f;
+                float t = ((offset + PERIMETER_DIRECTION[i] * PERIMETER_SPEEDS[i] * layerPerimTime[i]) % 1.0f);
+                if (t < 0.0f) t += 1.0f;
+                float angle = t * TWO_PI;
+                px = Math.abs(bx) * (float) Math.cos(angle);
+                py = Math.abs(by) * (float) Math.sin(angle);
+            }
 
             cachedLayerRots[i] = rot;
-            cachedLayerScales[i] = LAYER_SCALES[i] + smoothBS * BEAT_SCALE_BOOST[i];
+            cachedLayerSmoothBS[i] = smoothBS;
             cachedLayerPosX[i] = px;
             cachedLayerPosY[i] = py;
         }
 
+        // 1. Render animated layers onto the 24x48 downscaled buffer
         bufferCanvas.drawColor(0xFF1E1E28);
 
+        float screenAspect = (float) w / (float) h;
         if (artworkTransitionProgress < 1.0f && previousArtwork != null && !previousArtwork.isRecycled()) {
-            renderLayers(bufferCanvas, previousArtwork, 1.0f - artworkTransitionProgress);
+            renderLayers(bufferCanvas, previousArtwork, 1.0f - artworkTransitionProgress, screenAspect);
+        } else if (artworkTransitionProgress >= 1.0f) {
+            previousArtwork = null;
         }
         Bitmap activeArt = (currentArtwork != null && !currentArtwork.isRecycled()) ? currentArtwork : defaultArtwork;
-        renderLayers(bufferCanvas, activeArt, (previousArtwork != null) ? artworkTransitionProgress : 1.0f);
+        renderLayers(bufferCanvas, activeArt, (previousArtwork != null) ? artworkTransitionProgress : 1.0f, screenAspect);
 
-        bufferBitmap.getPixels(pixelsSrc, 0, BUFFER_SIZE, 0, 0, BUFFER_SIZE, BUFFER_SIZE);
-        fastBoxBlur(pixelsSrc, pixelsTemp, pixelsDst, BUFFER_SIZE, BUFFER_SIZE, BLUR_RADIUS);
-        blurBitmap.setPixels(pixelsDst, 0, BUFFER_SIZE, 0, 0, BUFFER_SIZE, BUFFER_SIZE);
+        // 2. Run separable CPU blur on the 24x48 pixel array
+        bufferBitmap.getPixels(pixelsSrc, 0, BUFFER_WIDTH, 0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
+        fastSeparableBlur24x48(pixelsSrc, pixelsTemp, pixelsDst, BUFFER_WIDTH, BUFFER_HEIGHT, BLUR_RADIUS_X, BLUR_RADIUS_Y);
+        blurBitmap.setPixels(pixelsDst, 0, BUFFER_WIDTH, 0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
 
-        int maxDim = Math.max(w, h);
-        int left = (w - maxDim) / 2;
-        int top = (h - maxDim) / 2;
-        screenRect.set(left, top, left + maxDim, top + maxDim);
+        // 3. Draw blurred 24x48 buffer onto full screen with post-process saturation/contrast & Apple Music scrim
+        screenRect.set(0, 0, w, h);
         canvas.drawBitmap(blurBitmap, null, screenRect, postProcessPaint);
 
         if (scrimGradient == null || lastGradientHeight != h) {
@@ -451,36 +586,76 @@ public final class DynamicBackgroundView extends View {
         canvas.drawRect(0, 0, w, h, scrimPaint);
         canvas.drawColor(0x27505050);
 
-        if (isAttached && getVisibility() == VISIBLE) {
-            postInvalidateOnAnimation();
+        // 4. Schedule next frame at 20 FPS (50ms interval) if animating
+        boolean needsNextFrame = (artworkTransitionProgress < 1.0f)
+                || (!isLightweight && isPlaying)
+                || (Settings.LYRICS_AUDIO_BEAT_SYNC.get() && (beatPulse > 0.001f || visualizerPulse > 0.001f));
+        if (isAttached && getVisibility() == VISIBLE && needsNextFrame) {
+            long renderCostMs = Math.max(0L, SystemClock.uptimeMillis() - now);
+            long delayMs = Math.max(16L, FRAME_INTERVAL_MS - renderCostMs);
+            scheduleNextFrame(delayMs);
         }
     }
 
-    private void renderLayers(Canvas c, Bitmap bmp, float alpha) {
+    /**
+     * Renders the 3 animated artwork layers into the 24x48 buffer canvas using exact
+     * aspect-corrected UV mapping from YouLyPlus (dynamicBkg.js) and Archive.zip.
+     */
+    private void renderLayers(Canvas c, Bitmap bmp, float alpha, float screenAspect) {
         if (bmp == null || bmp.isRecycled() || alpha <= 0.001f) return;
         layerPaint.setAlpha((int) (255 * Math.min(1.0f, Math.max(0.0f, alpha))));
-        float baseScale = (float) BUFFER_SIZE / Math.min(bmp.getWidth(), bmp.getHeight());
+
+        float safeAspect = Math.max(screenAspect, 1e-4f);
+        float aspectScaleX = screenAspect >= 1.0f ? 1.0f : (1.0f / safeAspect);
+        float aspectScaleY = screenAspect >= 1.0f ? screenAspect : 1.0f;
+
+        float bmpW = bmp.getWidth();
+        float bmpH = bmp.getHeight();
 
         for (int i = 0; i < 3; i++) {
-            layerMatrix.reset();
-            layerMatrix.postTranslate(-bmp.getWidth() * 0.5f, -bmp.getHeight() * 0.5f);
-            layerMatrix.postScale(baseScale * cachedLayerScales[i], baseScale * cachedLayerScales[i]);
-            layerMatrix.postRotate((float) -Math.toDegrees(cachedLayerRots[i]));
+            float sizeFactor = computeLayerSizeFactor(i, aspectScaleX, aspectScaleY, cachedLayerSmoothBS[i]);
+            float uvScaleX = sizeFactor / aspectScaleX;
+            float uvScaleY = sizeFactor / aspectScaleY;
 
-            float transX = (BUFFER_SIZE * 0.5f) + cachedLayerPosX[i] * (BUFFER_SIZE * 0.5f);
-            float transY = (BUFFER_SIZE * 0.5f) - cachedLayerPosY[i] * (BUFFER_SIZE * 0.5f);
+            layerMatrix.reset();
+            // Center bitmap at (0, 0) in unit square [-0.5, 0.5]
+            layerMatrix.postTranslate(-bmpW * 0.5f, -bmpH * 0.5f);
+            layerMatrix.postScale(1.0f / bmpW, 1.0f / bmpH);
+            // Rotate in isotropic UV space
+            layerMatrix.postRotate((float) -Math.toDegrees(cachedLayerRots[i]));
+            // Scale to 24x48 buffer dimensions
+            layerMatrix.postScale(uvScaleX * BUFFER_WIDTH * 0.5f, uvScaleY * BUFFER_HEIGHT * 0.5f);
+            // Translate to layer center on the 24x48 buffer
+            float transX = (0.5f + 0.5f * cachedLayerPosX[i]) * BUFFER_WIDTH;
+            float transY = (0.5f - 0.5f * cachedLayerPosY[i]) * BUFFER_HEIGHT;
             layerMatrix.postTranslate(transX, transY);
 
             c.drawBitmap(bmp, layerMatrix, layerPaint);
         }
     }
 
-    private static void fastBoxBlur(int[] src, int[] temp, int[] dst, int w, int h, int radius) {
-        if (radius < 1) return;
-        boxBlurH(src, temp, w, h, radius);
-        boxBlurV(temp, dst, w, h, radius);
-        boxBlurH(dst, temp, w, h, radius);
-        boxBlurV(temp, dst, w, h, radius);
+    /**
+     * 3-pass separable box blur (converges to Gaussian blur) on the 24x48 pixel buffer.
+     * Uses separate X and Y radii (BLUR_RADIUS_X = 2, BLUR_RADIUS_Y = 4) so the blur is
+     * isotropic when the 24x48 buffer is stretched to the portrait screen.
+     */
+    public static void fastSeparableBlur24x48(
+            int[] src, int[] temp, int[] dst, int w, int h, int radiusX, int radiusY) {
+        if (radiusX < 1 && radiusY < 1) {
+            System.arraycopy(src, 0, dst, 0, w * h);
+            return;
+        }
+        int rx = Math.max(1, radiusX);
+        int ry = Math.max(1, radiusY);
+        // Pass 1
+        boxBlurH(src, temp, w, h, rx);
+        boxBlurV(temp, dst, w, h, ry);
+        // Pass 2
+        boxBlurH(dst, temp, w, h, rx);
+        boxBlurV(temp, dst, w, h, ry);
+        // Pass 3 (Gaussian convergence)
+        boxBlurH(dst, temp, w, h, rx);
+        boxBlurV(temp, dst, w, h, ry);
     }
 
     private static void boxBlurH(int[] src, int[] dst, int w, int h, int radius) {

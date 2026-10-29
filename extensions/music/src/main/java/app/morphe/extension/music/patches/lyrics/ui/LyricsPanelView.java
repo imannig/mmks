@@ -7,8 +7,6 @@
 
 package app.morphe.extension.music.patches.lyrics.ui;
 
-import app.morphe.extension.music.patches.lyrics.romanizers.ScriptDetector;
-
 import static app.morphe.extension.shared.StringRef.str;
 
 import android.animation.Animator;
@@ -136,7 +134,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
     static final Interpolator TRANSITION_INTERPOLATOR = new PathInterpolator(0.25f, 0.1f, 0.25f, 1.0f);
 
-    private static final float SCROLL_ANCHOR_RATIO = 0.32f;
+    private static final float SCROLL_ANCHOR_RATIO = 0.25f;
 
     private static final Typeface LYRICS_TYPEFACE = WordAnimationUtils.getLyricsBoldTypeface();
 
@@ -322,6 +320,15 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
     private static int getPrimaryChildHeight(@Nullable View row) {
         if (row == null) return 0;
         if (row instanceof ViewGroup vg && vg.getChildCount() > 0) {
+            for (int c = 0; c < vg.getChildCount(); c++) {
+                View child = vg.getChildAt(c);
+                if (child instanceof LyricsLineView llv && llv.isSecondary()) {
+                    continue;
+                }
+                if (child != null && child.getVisibility() != View.GONE && child.getHeight() > 0) {
+                    return row.getPaddingTop() + child.getHeight() + row.getPaddingBottom();
+                }
+            }
             View first = vg.getChildAt(0);
             if (first != null && first.getVisibility() != View.GONE && first.getHeight() > 0) {
                 return row.getPaddingTop() + first.getHeight() + row.getPaddingBottom();
@@ -330,11 +337,38 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         return row.getHeight();
     }
 
-    // active lyric lock position moved down slightly to 72dp so it sits comfortably lower in viewport
+    // 1:1 with YouLyPlus (--lyrics-scroll-padding-top: 25%)
     private int getScrollAnchorPx() {
+        final boolean isSynced = (lyrics != null && lyrics.synced());
+        if (isSynced && scrollView != null && scrollView.getHeight() > 0) {
+            return Math.max(Dim.dp(48), Math.round(scrollView.getHeight() * SCROLL_ANCHOR_RATIO));
+        }
         return (linesContainer != null && linesContainer.getPaddingTop() > 0)
                 ? linesContainer.getPaddingTop()
-                : Dim.dp(72);
+                : Dim.dp(48);
+    }
+
+    private int computeActiveGroupEndIndex(int targetIndex) {
+        if (targetIndex < 0 || targetIndex >= lineRows.size()) {
+            return targetIndex;
+        }
+        int runEnd = targetIndex;
+        if (activeIndicesSet.size() > 1 && activeIndicesSet.contains(targetIndex)) {
+            int scan = targetIndex + 1;
+            while (scan < lineRows.size()) {
+                if (isSecondaryLineView(scan)) {
+                    scan++;
+                    continue;
+                }
+                if (activeIndicesSet.contains(scan)) {
+                    runEnd = scan;
+                    scan++;
+                } else {
+                    break;
+                }
+            }
+        }
+        return runEnd;
     }
 
     private int computeBlockScrollTargetY(int targetIndex) {
@@ -362,7 +396,6 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
 
         int runStart = targetIndex;
-        int runEnd = targetIndex;
         if (activeIndicesSet.size() > 1 && activeIndicesSet.contains(targetIndex)) {
             int scanBack = targetIndex - 1;
             while (scanBack >= 0) {
@@ -377,24 +410,8 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                     break;
                 }
             }
-            int scan = targetIndex + 1;
-            while (scan < lineRows.size()) {
-                if (isSecondaryLineView(scan)) {
-                    scan++;
-                    continue;
-                }
-                if (activeIndicesSet.contains(scan)) {
-                    runEnd = scan;
-                    scan++;
-                } else {
-                    break;
-                }
-            }
         }
-
-        if (targetIndex == 0 || runStart == 0) {
-            return 0;
-        }
+        int runEnd = computeActiveGroupEndIndex(targetIndex);
 
         int top = Integer.MAX_VALUE;
         int bottom = Integer.MIN_VALUE;
@@ -442,12 +459,14 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
         if (targetIdx >= 0 && targetIdx < lineRows.size()) {
             View targetView = lineRows.get(targetIdx);
+            int endIdx = computeActiveGroupEndIndex(targetIdx);
+            View endView = (endIdx >= 0 && endIdx < lineRows.size()) ? lineRows.get(endIdx) : targetView;
             final int clamped = computeBlockScrollTargetY(targetIdx);
             if (clamped < 0) return;
             lastScrollTarget = clamped;
             int refIdx = previousPrimaryActiveIndex >= 0 ? previousPrimaryActiveIndex : targetIdx;
             View refView = (refIdx >= 0 && refIdx < lineRows.size()) ? lineRows.get(refIdx) : targetView;
-            scrollEngine.scrollTo(clamped, targetView, targetIdx, refView, refIdx, 350L, false);
+            scrollEngine.scrollTo(clamped, targetView, targetIdx, endView, endIdx, refView, refIdx, 350L, 350L, false);
         }
     }
 
@@ -734,6 +753,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 updateHighlight();
                 long currentPos = lastLivePosMs > 0 ? lastLivePosMs : LyricsManager.getInstance().getPositionMs();
                 updateWordSync(currentPos);
+                updateOffscreenCulling();
 
                 if (shouldShowIntervalIndicator(currentPos)) {
                     postInvalidateOnAnimation();
@@ -854,6 +874,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         scrollView.setClipToPadding(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             scrollView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+                updateOffscreenCulling();
                 if (isProgrammaticScrolling) {
                     return;
                 }
@@ -1009,7 +1030,9 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         if (linesContainer == null) return;
         final boolean isSynced = (lyrics != null && lyrics.synced());
         final int viewportH = (scrollView != null) ? scrollView.getHeight() : 0;
-        final int top = Dim.dp(72);
+        final int top = (isSynced && viewportH > 0)
+                ? Math.max(Dim.dp(48), Math.round(viewportH * SCROLL_ANCHOR_RATIO))
+                : Dim.dp(40);
         final int bottom = Dim.dp(32);
         if (linesContainer.getPaddingTop() != top || linesContainer.getPaddingBottom() != bottom) {
             linesContainer.setPadding(Dim.dp24, top, Dim.dp24, bottom);
@@ -1278,6 +1301,18 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         } else {
             refreshView = null;
         }
+
+        TextView settingsBtn = new TextView(context);
+        applyButtonStyle(settingsBtn, null);
+        settingsBtn.setText("⚙");
+        settingsBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        settingsBtn.setPadding(Dim.dp12, Dim.dp6, Dim.dp12, Dim.dp6);
+        settingsBtn.setOnClickListener(view -> showLyricsQuickSettingsDialog());
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        settingsParams.setMarginStart(Dim.dp12);
+        buttonRow.addView(settingsBtn, settingsParams);
     }
 
     public void applyToolbarButtonSettings() {
@@ -1301,6 +1336,59 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         final boolean visible = !Settings.LYRICS_HIDE_INFO.get()
                 && info != null && info.length() > 0;
         creditView.setVisibility(visible ? VISIBLE : GONE);
+    }
+
+    public void applyDynamicBackgroundSettings() {
+        applyOverlayVisibility();
+        dynamicBgView.onSettingsChanged();
+    }
+
+    public void applyVisualAndScrollSettings() {
+        updateOffscreenCulling();
+        updateLinesDepthOfField(activeIndicesSet, primaryActiveIndex, -1);
+        dynamicBgView.onSettingsChanged();
+        for (TextView tv : lineViews) {
+            if (tv != null) {
+                tv.invalidate();
+            }
+        }
+    }
+
+    public void updateOffscreenCulling() {
+        if (lineViews.isEmpty()) return;
+        final boolean hideOffscreen = Settings.LYRICS_HIDE_OFFSCREEN.get();
+        if (!hideOffscreen || scrollView == null || scrollView.getHeight() <= 0
+                || linesContainer == null || linesContainer.getHeight() <= 0) {
+            for (int i = 0; i < lineViews.size(); i++) {
+                TextView tv = lineViews.get(i);
+                if (tv instanceof LyricsLineView llv && llv.isOffscreenHidden()) {
+                    llv.setOffscreenHidden(false);
+                }
+            }
+            return;
+        }
+        final int scrollY = scrollView.getScrollY();
+        final int viewportH = scrollView.getHeight();
+        final int marginPx = Dim.dp(200);
+        final float minVisibleY = scrollY - marginPx;
+        final float maxVisibleY = scrollY + viewportH + marginPx;
+
+        for (int i = 0; i < lineViews.size(); i++) {
+            TextView tv = lineViews.get(i);
+            if (!(tv instanceof LyricsLineView llv)) continue;
+            View row = (i < lineRows.size()) ? lineRows.get(i) : llv;
+            if (row == null || row.getHeight() <= 0 || row.getVisibility() == GONE) {
+                if (llv.isOffscreenHidden()) {
+                    llv.setOffscreenHidden(false);
+                }
+                continue;
+            }
+            float transY = row.getTranslationY();
+            float rowTop = row.getTop() + Math.min(0f, transY);
+            float rowBottom = row.getBottom() + Math.max(0f, transY);
+            boolean isOffscreen = (rowBottom < minVisibleY) || (rowTop > maxVisibleY);
+            llv.setOffscreenHidden(isOffscreen);
+        }
     }
 
     @Override
@@ -1482,7 +1570,8 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         final boolean visible = overlayVisible && cachedLyricsPanelOpen;
         final boolean wasVisible = getVisibility() == VISIBLE;
         setVisibility(visible ? VISIBLE : GONE);
-        dynamicBgView.setVisibility(visible ? VISIBLE : GONE);
+        final boolean bgVisible = visible && Settings.LYRICS_DYNAMIC_BACKGROUND.get();
+        dynamicBgView.setVisibility(bgVisible ? VISIBLE : GONE);
 
         if (visible && !wasVisible) {
             animate().cancel();
@@ -1820,34 +1909,57 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
         gapLineViews.clear();
         gapLineViewsByLine.clear();
+        updateLinesContainerPadding();
         if (isSynced) {
+            int prevMainIdx = -1;
             for (int i = 0; i < newLyrics.lines().size(); i++) {
+                if (isSecondaryLyricLine(i, newLyrics.lines()) && prevMainIdx >= 0) {
+                    continue;
+                }
                 LyricsLine line = newLyrics.lines().get(i);
-                final boolean isLineRtl = ScriptDetector.isLineRtl(line.text());
+                final boolean isLineRtl = LyricsRomanizer.containsArabic(line.text()) || LyricsRomanizer.containsHebrew(line.text());
                 final boolean isRightAligned;
                 if (isDuetSong) {
-                    isRightAligned = isLineRtl ? !line.isDuet() : line.isDuet();
+                    isRightAligned = songHasRtl ? !line.isDuet() : line.isDuet();
                 } else {
                     isRightAligned = isLineRtl;
                 }
-                if (i == 0) {
+                if (prevMainIdx < 0) {
                     long currentStart = line.startTimeMs();
                     if (currentStart != LyricsLine.NO_TIME
                             && currentStart >= INTERVAL_MIN_GAP_MS) {
                         long gapStart = 0L;
                         long gapEnd = Math.max(gapStart + 600L, currentStart - GAP_EXIT_DURATION_MS);
-                        gapIntervals.add(new GapInterval(gapStart, gapEnd, currentStart, line.isDuet(), 0, isRightAligned));
+                        gapIntervals.add(new GapInterval(gapStart, gapEnd, currentStart, line.isDuet(), i, isRightAligned));
                     }
+                    prevMainIdx = i;
                 } else {
-                    LyricsLine prevLine = newLyrics.lines().get(i - 1);
+                    LyricsLine prevLine = newLyrics.lines().get(prevMainIdx);
                     long prevStart = prevLine.startTimeMs();
                     long currentStart = line.startTimeMs();
                     if (currentStart == LyricsLine.NO_TIME || prevStart == LyricsLine.NO_TIME) {
+                        prevMainIdx = i;
                         continue;
                     }
                     long prevEnd = prevLine.endTimeMs();
-                    if (prevEnd == LyricsLine.NO_TIME && !prevLine.words().isEmpty()) {
-                        prevEnd = prevLine.words().get(prevLine.words().size() - 1).endMs();
+                    if (!prevLine.words().isEmpty()) {
+                        long wEnd = prevLine.words().get(prevLine.words().size() - 1).endMs();
+                        if (wEnd != LyricsLine.NO_TIME) {
+                            prevEnd = (prevEnd != LyricsLine.NO_TIME) ? Math.max(prevEnd, wEnd) : wEnd;
+                        }
+                    }
+                    for (int s = prevMainIdx + 1; s < i; s++) {
+                        LyricsLine secL = newLyrics.lines().get(s);
+                        long sEnd = secL.endTimeMs();
+                        if (!secL.words().isEmpty()) {
+                            long swEnd = secL.words().get(secL.words().size() - 1).endMs();
+                            if (swEnd != LyricsLine.NO_TIME) {
+                                sEnd = (sEnd != LyricsLine.NO_TIME) ? Math.max(sEnd, swEnd) : swEnd;
+                            }
+                        }
+                        if (sEnd != LyricsLine.NO_TIME) {
+                            prevEnd = (prevEnd != LyricsLine.NO_TIME) ? Math.max(prevEnd, sEnd) : sEnd;
+                        }
                     }
                     long gapBetweenStarts = currentStart - prevStart;
                     boolean hasKnownEnd = (prevEnd != LyricsLine.NO_TIME);
@@ -1860,6 +1972,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         }
                     }
                     if (gapBetweenStarts < INTERVAL_MIN_GAP_MS + 4000L && prevLine.words().isEmpty()) {
+                        prevMainIdx = i;
                         continue;
                     }
                     long safeEnd;
@@ -1870,10 +1983,11 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         safeEnd = Math.max(prevEnd, minSafeEnd);
                     }
                     if ((currentStart - safeEnd) >= INTERVAL_MIN_GAP_MS) {
-                        long gapStart = safeEnd;
+                        long gapStart = safeEnd + GapLineView.LYRICS_GAP_START_LAG_MS;
                         long gapEnd = Math.max(gapStart + 600L, currentStart - GAP_EXIT_DURATION_MS);
                         gapIntervals.add(new GapInterval(gapStart, gapEnd, currentStart, line.isDuet(), i, isRightAligned));
                     }
+                    prevMainIdx = i;
                 }
             }
         }
@@ -2098,12 +2212,12 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 return false;
             });
 
-            final int duetSideInset = Math.max(Dim.dp(24), (int) (context.getResources().getDisplayMetrics().widthPixels * 0.09f));
-            final boolean isLineRtl = ScriptDetector.isLineRtl(line.text());
+            final int duetSideInset = Math.max(Dim.dp(48), (int) (context.getResources().getDisplayMetrics().widthPixels * 0.18f));
+            final boolean isLineRtl = LyricsRomanizer.containsArabic(line.text()) || LyricsRomanizer.containsHebrew(line.text());
             boolean isDuetLine = line.isDuet() || (isSec && currentParentIdx >= 0 && newLyrics.lines().get(currentParentIdx).isDuet());
             final boolean isRightAligned;
             if (isDuetSong) {
-                isRightAligned = isLineRtl ? !isDuetLine : isDuetLine;
+                isRightAligned = songHasRtl ? !isDuetLine : isDuetLine;
             } else {
                 isRightAligned = isLineRtl;
             }
@@ -2119,6 +2233,22 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
             if (isSec && currentParentRow != null) {
                 lineView.setParentLineIndex(currentParentIdx);
+                boolean bgBeforeMain = false;
+                if (Settings.LYRICS_DYNAMIC_BG_VOCAL_POS.get()
+                        && currentParentIdx >= 0
+                        && currentParentIdx < newLyrics.lines().size()) {
+                    LyricsLine parentLine = newLyrics.lines().get(currentParentIdx);
+                    long bgStart = (line.hasWords() && line.words().get(0).startMs() != LyricsLine.NO_TIME)
+                            ? line.words().get(0).startMs()
+                            : line.startTimeMs();
+                    long mainStart = (parentLine.hasWords() && parentLine.words().get(0).startMs() != LyricsLine.NO_TIME)
+                            ? parentLine.words().get(0).startMs()
+                            : parentLine.startTimeMs();
+                    if (bgStart != LyricsLine.NO_TIME && mainStart != LyricsLine.NO_TIME && bgStart < mainStart) {
+                        bgBeforeMain = true;
+                    }
+                }
+                lineView.setBgBeforeMain(bgBeforeMain);
                 if (isSynced) {
                     lineView.setSecondaryExpandFraction(0f);
                     lineView.setVisibility(View.GONE);
@@ -2131,8 +2261,13 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 LinearLayout.LayoutParams bgParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
-                bgParams.topMargin = Dim.dp(4);
-                currentParentRow.addView(lineView, bgParams);
+                if (bgBeforeMain) {
+                    bgParams.bottomMargin = Dim.dp(4);
+                    currentParentRow.addView(lineView, 0, bgParams);
+                } else {
+                    bgParams.topMargin = Dim.dp(4);
+                    currentParentRow.addView(lineView, bgParams);
+                }
 
                 lineViews.add(lineView);
                 lineRows.add(currentParentRow);
@@ -3274,7 +3409,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
 
         // 5. Arabic / Hebrew (RTL) lines
-        if (ScriptDetector.isLineRtl(rawText)) {
+        if (LyricsRomanizer.containsArabic(rawText) || LyricsRomanizer.containsHebrew(rawText)) {
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\S+").matcher(rawText);
             List<LyricsLineView.WordUnit> units = new ArrayList<>();
 
@@ -4424,6 +4559,34 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         LinearLayout list = new LinearLayout(context);
         list.setOrientation(LinearLayout.VERTICAL);
 
+        LinearLayout quickSettingsItem = new LinearLayout(context);
+        quickSettingsItem.setOrientation(LinearLayout.HORIZONTAL);
+        quickSettingsItem.setGravity(Gravity.CENTER_VERTICAL);
+        quickSettingsItem.setPadding(Dim.dp16, Dim.dp12, Dim.dp16, Dim.dp12);
+        quickSettingsItem.setClickable(true);
+        quickSettingsItem.setFocusable(true);
+        GradientDrawable qsBg = new GradientDrawable();
+        qsBg.setShape(GradientDrawable.RECTANGLE);
+        qsBg.setCornerRadius(Dim.dp10);
+        qsBg.setColor(0x26FFFFFF);
+        qsBg.setStroke(Dim.dp(1), 0x66FFFFFF);
+        quickSettingsItem.setBackground(qsBg);
+        LinearLayout.LayoutParams qsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        qsLp.bottomMargin = Dim.dp12;
+        quickSettingsItem.setLayoutParams(qsLp);
+        TextView qsTitle = new TextView(context);
+        qsTitle.setText(isIndo ? "⚙ Pengaturan Animasi & Tampilan Lirik" : "⚙ Lyrics Visual & Animation Settings");
+        qsTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        qsTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        qsTitle.setTextColor(Color.WHITE);
+        quickSettingsItem.addView(qsTitle);
+        quickSettingsItem.setOnClickListener(v -> {
+            dialog.dismiss();
+            showLyricsQuickSettingsDialog();
+        });
+        list.addView(quickSettingsItem);
+
         for (LyricsManager.ProviderInfo p : providers) {
             LinearLayout item = new LinearLayout(context);
             item.setOrientation(LinearLayout.HORIZONTAL);
@@ -4512,6 +4675,160 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             });
 
             list.addView(item);
+        }
+
+        scroll.addView(list);
+        mainLayout.addView(scroll, 1, scrollLp);
+        dialog.show();
+    }
+
+
+    public void showLyricsQuickSettingsDialog() {
+        Context context = getContext();
+        boolean isIndo = Locale.getDefault().getLanguage().startsWith("in")
+                || Locale.getDefault().getLanguage().startsWith("id");
+        String closeText = isIndo ? "Tutup" : "Close";
+        String dialogTitle = isIndo ? "Pengaturan Lirik (YouLyPlus)" : "Lyrics Settings (YouLyPlus)";
+
+        Pair<Dialog, LinearLayout> dialogPair = CustomDialog.create(
+                context,
+                dialogTitle,
+                null,
+                null,
+                closeText,
+                () -> {},
+                null,
+                null,
+                null,
+                true
+        );
+
+        Dialog dialog = dialogPair.first;
+        LinearLayout mainLayout = dialogPair.second;
+
+        ScrollView scroll = new ScrollView(context);
+        scroll.setVerticalScrollBarEnabled(false);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        scrollLp.topMargin = Dim.dp8;
+        scrollLp.bottomMargin = Dim.dp8;
+
+        LinearLayout list = new LinearLayout(context);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        record ToggleItem(
+                app.morphe.extension.shared.settings.BooleanSetting setting,
+                String title,
+                String summary,
+                boolean reloadLyrics,
+                boolean isDynamicBg) {}
+
+        ToggleItem[] items = new ToggleItem[]{
+                new ToggleItem(
+                        Settings.LYRICS_DYNAMIC_BG_VOCAL_POS,
+                        "Dynamic Background Vocal Positioning",
+                        isIndo
+                                ? "Vokal latar yang mulai lebih dulu dari lirik utama ditampilkan di atas."
+                                : "Background lyrics that start before main lyrics will be displayed on top.",
+                        true, false),
+                new ToggleItem(
+                        Settings.LYRICS_BLUR_INACTIVE,
+                        "Blur Inactive Lyrics",
+                        isIndo
+                                ? "Menerapkan efek blur pada baris lirik yang sedang tidak aktif."
+                                : "Applies a blur effect to lyrics lines that are not currently active.",
+                        false, false),
+                new ToggleItem(
+                        Settings.LYRICS_LIGHTWEIGHT_MODE,
+                        "Lightweight Mode",
+                        isIndo
+                                ? "Mengurangi efek glow dan animasi berat agar lebih ringan di perangkat low-end."
+                                : "Reduces heavy character glow and visual effects for better performance.",
+                        true, false),
+                new ToggleItem(
+                        Settings.LYRICS_HIDE_OFFSCREEN,
+                        "Hide Off-screen Lyrics Line",
+                        "Hides & remove all animation lyrics lines that are not currently visible on the screen. Recommended for low-end devices.",
+                        false, false),
+                new ToggleItem(
+                        Settings.LYRICS_DYNAMIC_BACKGROUND,
+                        "Enable Dynamic Background (Player View)",
+                        "Applies animated album backgrounds when the player is expanded. This setting has no effect in fullscreen mode, where dynamic background is always enabled.",
+                        false, true),
+                new ToggleItem(
+                        Settings.LYRICS_AUDIO_BEAT_SYNC,
+                        "Audio-based Beat Pulse for Dynamic Background",
+                        "Makes the dynamic background layers pulse to the beat of the audio. If you use Better Lyrics Shaders or another Visualizer, you should disable this setting.",
+                        false, true),
+                new ToggleItem(
+                        Settings.LYRICS_RELAX_SCROLL,
+                        "Relax Scrolling",
+                        "Slower scrolling animation & disable text resizing animation for the lyrics.",
+                        false, false)
+        };
+
+        for (ToggleItem ti : items) {
+            LinearLayout row = new LinearLayout(context);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(Dim.dp16, Dim.dp12, Dim.dp16, Dim.dp12);
+            row.setClickable(true);
+            row.setFocusable(true);
+
+            GradientDrawable rowBg = new GradientDrawable();
+            rowBg.setShape(GradientDrawable.RECTANGLE);
+            rowBg.setCornerRadius(Dim.dp10);
+            rowBg.setColor(0x18FFFFFF);
+            row.setBackground(rowBg);
+
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rowLp.bottomMargin = Dim.dp8;
+            row.setLayoutParams(rowLp);
+
+            LinearLayout textCol = new LinearLayout(context);
+            textCol.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            colLp.setMarginEnd(Dim.dp12);
+            textCol.setLayoutParams(colLp);
+
+            TextView titleTv = new TextView(context);
+            titleTv.setText(ti.title());
+            titleTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            titleTv.setTypeface(Typeface.DEFAULT_BOLD);
+            titleTv.setTextColor(Color.WHITE);
+            textCol.addView(titleTv);
+
+            TextView sumTv = new TextView(context);
+            sumTv.setText(ti.summary());
+            sumTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
+            sumTv.setTextColor(0xAAFFFFFF);
+            sumTv.setPadding(0, Dim.dp(2), 0, 0);
+            textCol.addView(sumTv);
+
+            row.addView(textCol);
+
+            android.widget.Switch toggle = new android.widget.Switch(context);
+            toggle.setChecked(ti.setting().get());
+            toggle.setClickable(false);
+            toggle.setFocusable(false);
+            row.addView(toggle);
+
+            row.setOnClickListener(v -> {
+                boolean next = !ti.setting().get();
+                ti.setting().save(next);
+                toggle.setChecked(next);
+                if (ti.reloadLyrics()) {
+                    LyricsManager.getInstance().reloadAfterSettingsChange();
+                } else if (ti.isDynamicBg()) {
+                    applyDynamicBackgroundSettings();
+                } else {
+                    applyVisualAndScrollSettings();
+                }
+            });
+
+            list.addView(row);
         }
 
         scroll.addView(list);
@@ -4678,7 +4995,23 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             if (tv instanceof LyricsLineView llv && llv.isSecondary()) {
                 int pIdx = llv.getParentLineIndex();
                 if (pIdx >= 0 && set.contains(pIdx)) {
-                    set.add(i);
+                    boolean shouldActivateSec = true;
+                    if (i < retimedLyrics.size() && pIdx < retimedLyrics.size()) {
+                        LyricsRetiming.RetimedEntry secEntry = retimedLyrics.get(i);
+                        LyricsRetiming.RetimedEntry parEntry = retimedLyrics.get(pIdx);
+                        if (secEntry.startMs > parEntry.startMs + 550L && scanTime < secEntry.startMs - 250L) {
+                            shouldActivateSec = false;
+                        } else if (secEntry.actualEndTimeMs > secEntry.startMs
+                                && secEntry.actualEndTimeMs < parEntry.actualEndTimeMs - 600L
+                                && currentTimeMs > secEntry.actualEndTimeMs + 300L) {
+                            shouldActivateSec = false;
+                        }
+                    }
+                    if (shouldActivateSec) {
+                        set.add(i);
+                    } else {
+                        set.remove(i);
+                    }
                 }
             }
         }
@@ -4762,6 +5095,34 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             }
         }
         previousActiveSet.clear();
+    }
+
+    private long computeCurrentInterLineGapMs(long pos, int refIdx) {
+        if (retimedLyrics == null || retimedLyrics.isEmpty()) {
+            return 0L;
+        }
+        List<Integer> curActive = LyricsRetiming.findActiveRetimedLineIndices(
+                retimedLyrics, retimedAdjustedEndMax, pos, 0L);
+        int currentIdx = LyricsRetiming.calculatePrimaryRetimedLineIndex(
+                retimedLyrics, curActive, pos, Math.max(0, refIdx));
+        while (currentIdx > 0 && isSecondaryLineView(currentIdx)) {
+            currentIdx--;
+        }
+        if (currentIdx >= 0 && currentIdx < retimedLyrics.size()) {
+            int clusterEndIdx = currentIdx;
+            while (clusterEndIdx + 1 < retimedLyrics.size() && isSecondaryLineView(clusterEndIdx + 1)) {
+                clusterEndIdx++;
+            }
+            long rawEnd = retimedLyrics.get(currentIdx).actualEndTimeMs;
+            for (int k = currentIdx; k <= clusterEndIdx && k < retimedLyrics.size(); k++) {
+                rawEnd = Math.max(rawEnd, retimedLyrics.get(k).actualEndTimeMs);
+            }
+            int nextMainIdx = clusterEndIdx + 1;
+            if (nextMainIdx < retimedLyrics.size()) {
+                return Math.max(0L, retimedLyrics.get(nextMainIdx).startMs - rawEnd);
+            }
+        }
+        return 0L;
     }
 
     private long computeCurrentScrollLookAheadMs(long pos, int refIdx) {
@@ -4865,6 +5226,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 refIdx = 0;
             }
 
+            final long interLineGapMs = computeCurrentInterLineGapMs(pos, refIdx);
             final long scrollLookAheadMs = computeCurrentScrollLookAheadMs(pos, refIdx);
             final int anchorPx = (scrollView != null && scrollView.getHeight() > 0)
                     ? getScrollAnchorPx() : 0;
@@ -4980,7 +5342,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         View targetView = gv != null ? gv : (targetIdx >= 0 && targetIdx < lineRows.size() ? lineRows.get(targetIdx) : null);
                         int prevRef = previousPrimaryActiveIndex >= 0 ? previousPrimaryActiveIndex : targetIdx;
                         View refView = (prevRef >= 0 && prevRef < lineRows.size()) ? lineRows.get(prevRef) : targetView;
-                        scrollEngine.scrollTo(clamped, targetView, targetIdx, refView, prevRef, scrollLookAheadMs, false);
+                        scrollEngine.scrollTo(clamped, targetView, targetIdx, refView, prevRef, scrollLookAheadMs, interLineGapMs, false);
                     }
                     return;
                 }
@@ -4992,7 +5354,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                     lastScrollTarget = clamped;
                     int prevRef = primaryActiveIndex >= 0 ? primaryActiveIndex : Math.max(0, lineRows.size() - 1);
                     View refView = (prevRef >= 0 && prevRef < lineRows.size()) ? lineRows.get(prevRef) : creditBlockContainer;
-                    scrollEngine.scrollTo(clamped, creditBlockContainer, lineRows.size(), refView, prevRef, scrollLookAheadMs, false);
+                    scrollEngine.scrollTo(clamped, creditBlockContainer, lineRows.size(), refView, prevRef, scrollLookAheadMs, interLineGapMs, false);
                 }
                 return;
             }
@@ -5002,9 +5364,11 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 if (clamped >= 0 && (isSeek || primaryChanged || creditActiveChanged || lastScrollTarget < 0)) {
                     lastScrollTarget = clamped;
                     View targetView = lineRows.get(primaryActiveIndex);
+                    int endIdx = computeActiveGroupEndIndex(primaryActiveIndex);
+                    View endView = (endIdx >= 0 && endIdx < lineRows.size()) ? lineRows.get(endIdx) : targetView;
                     int prevRef = previousPrimaryActiveIndex >= 0 ? previousPrimaryActiveIndex : primaryActiveIndex;
                     View refView = (prevRef >= 0 && prevRef < lineRows.size()) ? lineRows.get(prevRef) : targetView;
-                    scrollEngine.scrollTo(clamped, targetView, primaryActiveIndex, refView, prevRef, scrollLookAheadMs, false);
+                    scrollEngine.scrollTo(clamped, targetView, primaryActiveIndex, endView, endIdx, refView, prevRef, scrollLookAheadMs, interLineGapMs, false);
                 }
             }
         } catch (Exception t) {
@@ -5021,7 +5385,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         final boolean isAutoScrollEnabled = !isBrowsing;
         final boolean isLrcSynced = (lyrics != null && lyrics.synced());
         final boolean applyBlur = blurInactive && isAutoScrollEnabled;
-        final float delayIncrementMs = LyricsRetiming.calculateScrollDelayIncrementFloat(scrollEngine.getScrollDurationMs());
+        final float delayIncrementMs = LyricsRetiming.calculateScrollDelayIncrementFloat(scrollEngine.getScrollDurationMs(), Settings.LYRICS_RELAX_SCROLL.get());
         final int count = lineViews.size();
 
         final int[] mainOrd = new int[count];
@@ -5083,9 +5447,9 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
             final boolean hasActiveSec = activeParentsFromSecondary.contains(i);
             final boolean isActive = activeSet.contains(i) || hasActiveSec;
             final int signedDistance;
-            // ponytail: any line in activeSet is fully focused with distance 0
-            if (!isLrcSynced || isActive) {
-                signedDistance = 0;
+        // ponytail: any line in activeSet is fully focused with distance 0
+        if (!isLrcSynced || isActive) {
+            signedDistance = 0;
             } else if (anchorOrd >= 0) {
                 signedDistance = mainOrd[i] - anchorOrd;
             } else {
@@ -5161,7 +5525,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
 
         final float targetScale;
-        if (isActive || !isAutoScrollEnabled || !isLrcSynced) {
+        if (isActive || !isAutoScrollEnabled || !isLrcSynced || Settings.LYRICS_RELAX_SCROLL.get()) {
             targetScale = 1.0f;
         } else if (distance == 0 || distance == 1) {
             targetScale = 0.97f;

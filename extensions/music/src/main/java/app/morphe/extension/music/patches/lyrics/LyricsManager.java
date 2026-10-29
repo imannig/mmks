@@ -456,7 +456,7 @@ public final class LyricsManager {
         if (videoTime >= 0 && videoTime != lastVideoTimeSample) {
             final boolean wasAdvancing = (lastVideoTimeSample >= 0 && videoTime > lastVideoTimeSample);
             lastVideoTimeSample = videoTime;
-            if (wasAdvancing) {
+            if (wasAdvancing || videoTime > 0) {
                 playing = true;
             }
 
@@ -467,8 +467,7 @@ public final class LyricsManager {
                     && (now - lastPlaybackSampleUptimeMs > PLAYBACK_STALE_MS));
 
             // if seek backward or forward too far or audio sample already stale af, hard re-anchor right away
-            if (isInitial || isBackwardSeek || isForwardSeek || isStaleDrift
-                    || (!playing && Math.abs(videoTime - smoothPositionMs) > 600L)) {
+            if (isInitial || isBackwardSeek || isForwardSeek || isStaleDrift) {
                 smoothPositionMs = videoTime;
                 positionMs = videoTime;
                 positionUpdatedAtUptimeMs = now;
@@ -2417,6 +2416,7 @@ private void reorderQueueByRemembered() {
             if (splitBackground) {
                 lyrics = LyricsBracketSplitter.apply(lyrics);
             }
+            lyrics = sanitizeDegradedRomaji(lyrics);
             if (cacheKey != null) {
                 filteredCache.put(cacheKey, lyrics);
             }
@@ -2617,6 +2617,43 @@ private void reorderQueueByRemembered() {
         return enabledProviderIds(Settings.LYRICS_SOURCE.get()).contains(id);
     }
 
+    private static Lyrics sanitizeDegradedRomaji(Lyrics lyrics) {
+        if (lyrics == null || lyrics == Lyrics.NOT_FOUND || lyrics.isEmpty()) {
+            return lyrics;
+        }
+
+        List<LyricsLine> embedded = LyricsRomanizer.getEmbeddedRomanization(lyrics);
+        boolean perWord = LyricsMerge.anyWordHasRomaji(lyrics.lines());
+        if (!perWord && (embedded == null || embedded.isEmpty())) {
+            return lyrics;
+        }
+
+        boolean degraded = LyricsRomanizer.isProviderRomajiDegraded(embedded, lyrics.lines(), perWord);
+        if (!degraded) {
+            return lyrics;
+        }
+
+        Logger.printDebug(() -> "Sanitizing degraded provider romaji (mora fragments) to force Google Translate fallback.");
+
+        List<LyricsLine> origLines = lyrics.lines();
+        List<LyricsLine> cleanedLines = new ArrayList<>(origLines.size());
+        for (LyricsLine line : origLines) {
+            if (line.hasWords()) {
+                List<Word> words = new ArrayList<>(line.words().size());
+                for (Word w : line.words()) {
+                    words.add(new Word(w.startMs(), w.endMs(), w.text(), null, w.endsWithSpace()));
+                }
+                cleanedLines.add(new LyricsLine(line.startTimeMs(), line.endTimeMs(), line.text(), words,
+                        line.agentId(), line.isDuet(), line.isBG(), line.songPart()));
+            } else {
+                cleanedLines.add(line);
+            }
+        }
+
+        return new Lyrics(cleanedLines, lyrics.providerName(), lyrics.synced(),
+                null, lyrics.translations(), null,
+                lyrics.songwriters(), lyrics.rawFormat(), lyrics.formatType(), lyrics.sourceUrl());
+    }
 
     public static final int STATUS_ACTIVE = 0;
     public static final int STATUS_AVAILABLE = 1;

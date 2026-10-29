@@ -162,7 +162,8 @@ public final class LyricsBracketSplitter {
             backgroundText.append(text, tail.open() + 1, tail.close());
         }
 
-        return finishText(line, text.substring(sungFrom, sungTo), backgroundText.toString());
+        final boolean bgStartedBeforeMain = (head != null && tail == null);
+        return finishText(line, text.substring(sungFrom, sungTo), backgroundText.toString(), bgStartedBeforeMain);
     }
 
     @Nullable
@@ -182,17 +183,35 @@ public final class LyricsBracketSplitter {
     }
 
     @Nullable
-    private static Cut finishText(LyricsLine line, String sungText, String backgroundText) {
+    private static Cut finishText(LyricsLine line, String sungText, String backgroundText, boolean bgStartedBeforeMain) {
         final String kept = sungText.trim();
         if (kept.isEmpty() || !sung(backgroundText)) {
             return null;
         }
-        return new Cut(plain(line, kept, List.of(), false),
-                plain(line, backgroundText.trim(), List.of(), true));
+        LyricsLine sungLine = plain(line, kept, List.of(), false);
+        long bgStart = line.startTimeMs();
+        if (bgStartedBeforeMain && bgStart != LyricsLine.NO_TIME && bgStart > 0L) {
+            bgStart = bgStart - 1L;
+        }
+        LyricsLine bgLine = new LyricsLine(bgStart, line.endTimeMs(), backgroundText.trim(), List.of(),
+                line.agentId(), line.isDuet(), true, line.songPart());
+        return new Cut(sungLine, bgLine);
     }
 
     private static LyricsLine plain(LyricsLine line, String text, List<Word> words, boolean isBG) {
-        return new LyricsLine(line.startTimeMs(), line.endTimeMs(), text, words,
+        long startMs = line.startTimeMs();
+        long endMs = line.endTimeMs();
+        if (words != null && !words.isEmpty()) {
+            long firstWordStart = words.get(0).startMs();
+            long lastWordEnd = words.get(words.size() - 1).endMs();
+            if (firstWordStart != LyricsLine.NO_TIME) {
+                startMs = firstWordStart;
+            }
+            if (lastWordEnd != LyricsLine.NO_TIME) {
+                endMs = lastWordEnd;
+            }
+        }
+        return new LyricsLine(startMs, endMs, text, words,
                 line.agentId(), line.isDuet(), isBG, line.songPart());
     }
 
@@ -203,7 +222,7 @@ public final class LyricsBracketSplitter {
             String body = words.get(i).text();
             if (i == 0) {
                 body = body.stripLeading();
-                while (isOpen(body.charAt(0))) {
+                while (!body.isEmpty() && isOpen(body.charAt(0))) {
                     body = body.substring(1).stripLeading();
                 }
             }

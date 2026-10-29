@@ -9,6 +9,8 @@ package app.morphe.extension.music.patches.lyrics.ui;
 import org.junit.Assert;
 import org.junit.Test;
 
+import app.morphe.extension.music.patches.lyrics.model.LyricsRetiming;
+
 public class SpringEasingTest {
 
     @Test
@@ -64,6 +66,31 @@ public class SpringEasingTest {
     }
 
     @Test
+    public void testDynamicZetaAndRelaxScrolling() {
+        // Default zeta without gap
+        Assert.assertEquals(0.78f, SpringEasing.computeZeta(0L, false), 0.0001f);
+        Assert.assertEquals(0.80f, SpringEasing.computeZeta(0L, true), 0.0001f);
+
+        // Tight gap -> closer to 0.85, Wide gap (2500ms+) -> 0.73 (or 0.78 in relax mode)
+        Assert.assertEquals(0.73f, SpringEasing.computeZeta(2500L, false), 0.0001f);
+        Assert.assertEquals(0.78f, SpringEasing.computeZeta(2500L, true), 0.0001f);
+
+        // Relax scrolling duration (1.5x) and stagger ratio (0.05f vs 0.10f)
+        long normalDur = LyricsRetiming.calculateScrollDuration(400L, false);
+        long relaxDur = LyricsRetiming.calculateScrollDuration(400L, true);
+        Assert.assertEquals(400L, normalDur);
+        Assert.assertEquals(600L, relaxDur);
+
+        Assert.assertEquals(40f, LyricsRetiming.calculateScrollDelayIncrementFloat(400L, false), 0.001f);
+        Assert.assertEquals(30f, LyricsRetiming.calculateScrollDelayIncrementFloat(600L, true), 0.001f);
+
+        // Upward scroll in relax mode halves delayIncrementMs
+        SpringEasing.LyricsScrollStagger relaxUp = new SpringEasing.LyricsScrollStagger(
+                false, 5, 600L, 30f, true, new int[0]);
+        Assert.assertEquals(15f, relaxUp.delayIncrementMs, 0.001f);
+    }
+
+    @Test
     public void testCacheCapacity() {
         for (int i = 0; i < 100; i++) {
             SpringEasing.get(300 + i * 10, 0.78, 400);
@@ -71,5 +98,31 @@ public class SpringEasingTest {
         // make sure cache working and memory safe
         SpringEasing.Result r = SpringEasing.get(350, 0.78, 525);
         Assert.assertNotNull(r);
+    }
+
+    @Test
+    public void testStaggerAfterIndexForDownwardScroll() {
+        // linesBefore[k] = count of non-gap lines in 0..(k-1). Suppose row 5 is a gap row:
+        // indices:    0  1  2  3  4  5(gap) 6  7
+        // linesBefore:0, 1, 2, 3, 4, 5,     5, 6, 7
+        int[] linesBefore = new int[]{0, 1, 2, 3, 4, 5, 5, 6, 7};
+        SpringEasing.LyricsScrollStagger downStagger = new SpringEasing.LyricsScrollStagger(
+                true, 2, 3, 400L, 40f, false, linesBefore);
+        Assert.assertEquals(0, downStagger.steps(2));
+        Assert.assertEquals(0, downStagger.steps(3));
+        Assert.assertEquals(0L, downStagger.delayFor(2));
+        Assert.assertEquals(0L, downStagger.delayFor(3));
+        Assert.assertEquals(1, downStagger.steps(4));
+        Assert.assertEquals(40L, downStagger.delayFor(4));
+        Assert.assertEquals(2, downStagger.steps(6));
+        Assert.assertEquals(80L, downStagger.delayFor(6));
+
+        // Multi-active group (rows 3..4 active when leaving row 2): rows 2, 3, 4 all have 0ms delay
+        SpringEasing.LyricsScrollStagger multiGroupStagger = new SpringEasing.LyricsScrollStagger(
+                true, 2, 4, 400L, 40f, false, new int[0]);
+        Assert.assertEquals(0L, multiGroupStagger.delayFor(2));
+        Assert.assertEquals(0L, multiGroupStagger.delayFor(3));
+        Assert.assertEquals(0L, multiGroupStagger.delayFor(4));
+        Assert.assertEquals(40L, multiGroupStagger.delayFor(5));
     }
 }

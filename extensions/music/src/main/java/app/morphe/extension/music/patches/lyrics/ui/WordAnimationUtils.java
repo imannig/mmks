@@ -813,6 +813,51 @@ public final class WordAnimationUtils {
         return sb.toString();
     }
 
+    /**
+     * Matches YouLyPlus LyricsPlusRenderer._isNeedSplitOnly(text):
+     * Returns true when a word consists purely of CJK characters (Han, Hiragana, Katakana, Hangul),
+     * which should use clean syllable elevation (-0.05em) rather than per-letter horizontal wave distortion.
+     */
+    public static boolean isNeedSplitOnly(@Nullable String text) {
+        if (text == null) return false;
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) return false;
+        int i = 0;
+        boolean hasCjk = false;
+        while (i < trimmed.length()) {
+            int cp = trimmed.codePointAt(i);
+            int charCount = (cp > 0xFFFF) ? 2 : 1;
+            if (Character.isWhitespace(cp) || isEmphasisAttached((char) cp)) {
+                i += charCount;
+                continue;
+            }
+            if ((cp >= 0x4E00 && cp <= 0x9FFF)
+                    || (cp >= 0x3400 && cp <= 0x4DBF)
+                    || (cp >= 0x20000 && cp <= 0x2A6DF)
+                    || (cp >= 0x3040 && cp <= 0x309F)
+                    || (cp >= 0x30A0 && cp <= 0x30FF)
+                    || (cp >= 0xAC00 && cp <= 0xD7AF)
+                    || (cp >= 0x1100 && cp <= 0x11FF)
+                    || (cp >= 0x3130 && cp <= 0x318F)) {
+                hasCjk = true;
+            } else {
+                return false;
+            }
+            i += charCount;
+        }
+        return hasCjk;
+    }
+
+    private static boolean isEmphasisAttached(char ch) {
+        if ("!?.,;:~…‥。、！？".indexOf(ch) >= 0) return true;
+        int code = (int) ch;
+        return (code >= 0x0300 && code <= 0x036F)
+                || (code >= 0x3099 && code <= 0x309A)
+                || code == 0x200D
+                || code == 0xFE0F
+                || code == 0xFE0E;
+    }
+
     public static boolean isCJK(@Nullable String text) {
         if (text == null || text.isEmpty()) return false;
         int i = 0;
@@ -1185,6 +1230,11 @@ public final class WordAnimationUtils {
         runPaint.setColor(color);
         if (hasJoiningScript) {
             runPaint.setLetterSpacing(0f);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                runPaint.setFontFeatureSettings(null);
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            runPaint.setFontFeatureSettings("\"liga\" 0, \"clig\" 0, \"dlig\" 0");
         }
         boolean rtl = isRtlText(text);
         int desiredW = Math.max(1, (int) Math.ceil(Layout.getDesiredWidth(text, runPaint)));

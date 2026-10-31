@@ -1357,11 +1357,17 @@ public final class LyricsManager {
 
         // Video id providers only know the playing track, so they are asked only when the
         // terms are that track's own metadata.
-        final List<LyricsProvider> enabledProviders =
-                LyricsProviders.providersInOrder(Settings.LYRICS_SOURCE.get());
-        final List<LyricsProvider> providers = defaultTerms
-                ? enabledProviders
-                : LyricsProviders.searchableProviders(enabledProviders);
+        final List<LyricsProvider> providers;
+        if (defaultTerms) {
+            providers = LyricsProviders.providersInOrder(Settings.LYRICS_SOURCE.get());
+        } else {
+            List<LyricsProvider> all = new ArrayList<>();
+            for (String pid : LyricsProviders.PROVIDER_ORDER) {
+                LyricsProvider p = LyricsProviders.providerFor(pid);
+                if (p != null) all.add(p);
+            }
+            providers = LyricsProviders.searchableProviders(all);
+        }
         if (providers.isEmpty()) {
             publishFromLookup(id, Lyrics.NOT_FOUND);
             return;
@@ -2452,23 +2458,35 @@ public final class LyricsManager {
         }
 
         runOnLookupThread(() -> {
+            TrackInfo queryTrack = customQueryTrack(track);
+            List<TrackInfo> searchTracks = new ArrayList<>();
+            if (queryTrack != null) {
+                searchTracks.add(queryTrack);
+            }
+            searchTracks.add(track);
+
             synchronized (candidateQueue) {
                 for (ScoredCandidate sc : candidateQueue) {
-                    if (providerId.equalsIgnoreCase(sc.lyrics().providerName())
-                            && LyricsMatch.isValidLyrics(sc.lyrics(), track)) {
-                        if (!LyricsRequests.isCustomMatchMode()) {
-                            LyricsCache.put(track, LyricsMatch.cacheSourceFor(sc.lyrics()), sc.lyrics(), preferenceVideoId);
+                    if (providerId.equalsIgnoreCase(sc.lyrics().providerName())) {
+                        for (TrackInfo st : searchTracks) {
+                            if (LyricsMatch.isValidLyrics(sc.lyrics(), st)) {
+                                if (!LyricsRequests.isCustomMatchMode()) {
+                                    LyricsCache.put(track, LyricsMatch.cacheSourceFor(sc.lyrics()), sc.lyrics(), preferenceVideoId);
+                                }
+                                publishFromLookup(id, sc.lyrics());
+                                return;
+                            }
                         }
-                        publishFromLookup(id, sc.lyrics());
-                        return;
                     }
                 }
             }
 
-            Lyrics cached = LyricsCache.get(track, providerId, preferenceVideoId);
-            if (cached != null && cached != Lyrics.NOT_FOUND && LyricsMatch.isValidLyrics(cached, track)) {
-                publishFromLookup(id, cached);
-                return;
+            for (TrackInfo st : searchTracks) {
+                Lyrics cached = LyricsCache.get(st, providerId, preferenceVideoId);
+                if (cached != null && cached != Lyrics.NOT_FOUND && LyricsMatch.isValidLyrics(cached, st)) {
+                    publishFromLookup(id, cached);
+                    return;
+                }
             }
 
             LyricsProvider provider = LyricsProviders.providerFor(providerId);
@@ -2477,37 +2495,39 @@ public final class LyricsManager {
                 return;
             }
 
-            try {
-                LyricsProvider.FetchResult res = provider.fetch(track);
-                Lyrics fetched = res != null ? res.lyrics() : null;
-                if (fetched != null && LyricsMatch.isValidLyrics(fetched, track)) {
-                    if (!LyricsRequests.isCustomMatchMode()) {
-                        LyricsCache.put(track, LyricsMatch.cacheSourceFor(fetched), fetched, preferenceVideoId);
-                    }
-                    publishFromLookup(id, fetched);
-                    return;
-                }
-            } catch (Exception ex) {
-                Logger.printDebug(() -> "Explicit provider fetch failed: " + providerId, ex);
-            }
-
-            if (provider.hasCandidates()) {
+            for (TrackInfo st : searchTracks) {
                 try {
-                    List<Lyrics.ScoredLyrics> candidates = provider.fetchCandidates(track);
-                    if (candidates != null && !candidates.isEmpty()) {
-                        for (Lyrics.ScoredLyrics c : candidates) {
-                            Lyrics cLyr = c != null ? c.lyrics() : null;
-                            if (cLyr != null && LyricsMatch.isValidLyrics(cLyr, track)) {
-                                if (!LyricsRequests.isCustomMatchMode()) {
-                                    LyricsCache.put(track, LyricsMatch.cacheSourceFor(cLyr), cLyr, preferenceVideoId);
-                                }
-                                publishFromLookup(id, cLyr);
-                                return;
-                            }
+                    LyricsProvider.FetchResult res = provider.fetch(st);
+                    Lyrics fetched = res != null ? res.lyrics() : null;
+                    if (fetched != null && LyricsMatch.isValidLyrics(fetched, st)) {
+                        if (!LyricsRequests.isCustomMatchMode()) {
+                            LyricsCache.put(track, provider.name(), fetched, preferenceVideoId);
                         }
+                        publishFromLookup(id, fetched);
+                        return;
                     }
                 } catch (Exception ex) {
-                    Logger.printDebug(() -> "Explicit candidate fetch failed: " + providerId, ex);
+                    Logger.printDebug(() -> "Explicit provider fetch failed: " + providerId, ex);
+                }
+
+                if (provider.hasCandidates()) {
+                    try {
+                        List<Lyrics.ScoredLyrics> candidates = provider.fetchCandidates(st);
+                        if (candidates != null && !candidates.isEmpty()) {
+                            for (Lyrics.ScoredLyrics c : candidates) {
+                                Lyrics cLyr = c != null ? c.lyrics() : null;
+                                if (cLyr != null && LyricsMatch.isValidLyrics(cLyr, st)) {
+                                    if (!LyricsRequests.isCustomMatchMode()) {
+                                        LyricsCache.put(track, provider.name(), cLyr, preferenceVideoId);
+                                    }
+                                    publishFromLookup(id, cLyr);
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        Logger.printDebug(() -> "Explicit candidate fetch failed: " + providerId, ex);
+                    }
                 }
             }
 

@@ -30,6 +30,8 @@ import app.morphe.extension.music.patches.lyrics.model.Lyrics;
 import app.morphe.extension.music.patches.lyrics.model.LyricsLine;
 import app.morphe.extension.music.patches.lyrics.model.LyricsMerge;
 import app.morphe.extension.music.patches.lyrics.model.Word;
+import app.morphe.extension.music.patches.lyrics.romanizers.KanaRomanizer;
+import app.morphe.extension.music.patches.lyrics.romanizers.ScriptDetector;
 import app.morphe.extension.shared.Logger;
 
 /**
@@ -965,18 +967,20 @@ public final class TTMLParser {
                                 if (rRoma.length() > 0) rRoma.append(' ');
                                 rRoma.append(rs.text());
                             }
-                            //noinspection SizeReplaceableByIsEmpty
-                            final String romaji = rRoma.length() > 0 ? rRoma.toString() : null;
+                                final String rubyText = rRoma.length() > 0 ? rRoma.toString() : null;
+                                final String romaji = rubyText != null
+                                        ? (ScriptDetector.containsKana(rubyText) ? KanaRomanizer.romanize(rubyText).trim() : rubyText)
+                                        : null;
 
-                            // The base is the sung text either way, only the line differs.
-                            if (inBg) {
-                                bgFullText.append(baseText);
-                                bgWords.add(new Word(rBegin, rEnd, baseText, romaji, false));
-                            } else {
-                                fullText.append(baseText);
-                                words.add(new Word(rBegin, rEnd, baseText, romaji, false));
+                                // The base is the sung text either way, only the line differs.
+                                if (inBg) {
+                                    bgFullText.append(baseText);
+                                    bgWords.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
+                                } else {
+                                    fullText.append(baseText);
+                                    words.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
+                                }
                             }
-                        }
                     } else if (inBg && bgWrapperDepth > 0) {
                         bgWrapperDepth--;
                     } else if (inBg) {
@@ -1264,7 +1268,7 @@ public final class TTMLParser {
                 // Fast track: start times match within 2ms
                 if (Math.abs(main.startMs() - sub.startMs()) <= FAST_TRACK_MS) {
                     words.set(i, new Word(main.startMs(), main.endMs(), main.text(),
-                            sub.text(), main.endsWithSpace()));
+                            sub.text(), main.endsWithSpace(), main.ruby()));
                     romanSearchStart = j + 1;
                     fastMatched = true;
                     break;
@@ -1293,8 +1297,8 @@ public final class TTMLParser {
 
             if (!fastMatched && bestIdx >= 0 && maxIou >= MIN_IOU) {
                 final RomajiSyllable sub = sidecar.get(bestIdx);
-                words.set(i, new Word(main.startMs(), main.endMs(), main.text(),
-                        sub.text(), main.endsWithSpace()));
+                    words.set(i, new Word(main.startMs(), main.endMs(), main.text(),
+                            sub.text(), main.endsWithSpace(), main.ruby()));
                 romanSearchStart = bestIdx + 1;
             }
         }

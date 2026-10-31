@@ -47,12 +47,17 @@ final class LyricsSpanBuilder {
      *                         the readings of two words do not run together.
      */
     record WordTiming(int start, int end, long startMs, long endMs,
-                      @Nullable String romaji, boolean hasTrailingSpace) {
+                      @Nullable String romaji, boolean hasTrailingSpace,
+                      @Nullable String ruby) {
 
-        /** A reading ending in a space stands for the space after its word. */
+        WordTiming(int start, int end, long startMs, long endMs,
+                   @Nullable String romaji, boolean hasTrailingSpace) {
+            this(start, end, startMs, endMs, romaji, hasTrailingSpace, null);
+        }
+
         WordTiming(int start, int end, long startMs, long endMs, @Nullable String romaji) {
             this(start, end, startMs, endMs, romaji,
-                    romaji != null && romaji.endsWith(" "));
+                    romaji != null && romaji.endsWith(" "), null);
         }
     }
 
@@ -118,8 +123,8 @@ final class LyricsSpanBuilder {
         for (WordTiming word : words) {
             final int start = formatted.offset(word.start() + originalStart) - base;
             final int end = formatted.offset(word.end() + originalStart) - base;
-            if (end > start) mapped.add(new WordTiming(start, end, word.startMs(), word.endMs(),
-                    word.romaji(), word.hasTrailingSpace()));
+                if (end > start) mapped.add(new WordTiming(start, end, word.startMs(), word.endMs(),
+                        word.romaji(), word.hasTrailingSpace(), word.ruby()));
         }
         return new PresentedLine(new BuildResult(text, raw.unsungSpan(),
                 formatted.offset(raw.transStart()), formatted.offset(raw.transEnd()),
@@ -1083,13 +1088,13 @@ final class LyricsSpanBuilder {
                             ? romParts[pi] : null;
                     offset = appendMatchedWordTiming(
                             timings, text, textLength, offset, part,
-                            curStartMs, partEndMs, partRom, !isLast || wordTrailingSpace);
+                            curStartMs, partEndMs, partRom, !isLast || wordTrailingSpace, word.ruby());
                     curStartMs = partEndMs;
                 }
             } else {
                 offset = appendMatchedWordTiming(
                         timings, text, textLength, offset, trimmed,
-                        word.startMs(), word.endMs(), rawRom, wordTrailingSpace);
+                        word.startMs(), word.endMs(), rawRom, wordTrailingSpace, word.ruby());
             }
         }
 
@@ -1112,7 +1117,8 @@ final class LyricsSpanBuilder {
             long startMs,
             long endMs,
             @Nullable String rom,
-            boolean wordTrailingSpace) {
+            boolean wordTrailingSpace,
+            @Nullable String ruby) {
         int start = text.indexOf(token, offset);
         if (start < 0) {
             start = indexOfIgnoreCase(text, token, offset);
@@ -1133,7 +1139,7 @@ final class LyricsSpanBuilder {
         }
         final boolean trailSpace = wordTrailingSpace
                 || (end < textLength && Character.isWhitespace(text.charAt(end)));
-        timings.add(new WordTiming(start, end, startMs, Math.max(endMs, startMs + 1L), rom, trailSpace));
+        timings.add(new WordTiming(start, end, startMs, Math.max(endMs, startMs + 1L), rom, trailSpace, ruby));
         return end;
     }
 
@@ -1426,7 +1432,7 @@ final class LyricsSpanBuilder {
         List<WordTiming> shifted = new ArrayList<>(spans.size());
         for (WordTiming span : spans) {
             shifted.add(new WordTiming(span.start() + by, span.end() + by,
-                    span.startMs(), span.endMs(), span.romaji(), span.hasTrailingSpace()));
+                    span.startMs(), span.endMs(), span.romaji(), span.hasTrailingSpace(), span.ruby()));
         }
         return shifted;
     }
@@ -1596,7 +1602,7 @@ final class LyricsSpanBuilder {
                 continue;
             }
             words.add(new Word(timing.startMs(), timing.endMs(), text.substring(start, end),
-                    timing.romaji(), timing.hasTrailingSpace()));
+                    timing.romaji(), timing.hasTrailingSpace(), timing.ruby()));
         }
         return words;
     }

@@ -131,7 +131,9 @@ public final class LyricsRomanizer {
                 } else if (ScriptDetector.contains(reading, Character.UnicodeScript.HANGUL)) {
                     reading = HangulRomanizer.romanize(reading).trim();
                 } else if (ScriptDetector.containsKana(reading)) {
-                    reading = KanaRomanizer.romanize(reading).trim();
+                    if (!allowTransliteration) {
+                        reading = KanaRomanizer.romanize(reading).trim();
+                    }
                 }
                 if (allowTransliteration || isPurelyLatinScript(reading)) {
                     return reading;
@@ -145,7 +147,7 @@ public final class LyricsRomanizer {
             if (ScriptDetector.contains(original, Character.UnicodeScript.HANGUL)) {
                 fallback = HangulRomanizer.romanize(original).trim();
             } else if (ScriptDetector.containsKana(original)) {
-                fallback = KanaRomanizer.romanize(original).trim();
+                fallback = allowTransliteration ? original.trim() : KanaRomanizer.romanize(original).trim();
             }
             if (fallback != null && (allowTransliteration || isPurelyLatinScript(fallback))) {
                 return fallback;

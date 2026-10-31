@@ -342,7 +342,14 @@ final class LyricsSpanBuilder {
         if (timings == null || timings.isEmpty() || mainText.isEmpty()) {
             return null;
         }
-        if (romanizedLines == null && !perWordRomaji) {
+        boolean lineHasRuby = false;
+        for (WordTiming wt : timings) {
+            if (wt.ruby() != null && !wt.ruby().trim().isEmpty()) {
+                lineHasRuby = true;
+                break;
+            }
+        }
+        if (romanizedLines == null && !perWordRomaji && !lineHasRuby) {
             return null;
         }
         String cleanMain = stripBidiControls(mainText).trim();
@@ -484,11 +491,12 @@ final class LyricsSpanBuilder {
             }
         }
 
-        if (!populated) {
+        if (!populated && !lineHasRuby) {
             return null;
         }
 
         boolean anyRoman = false;
+        boolean anyRuby = false;
         List<WordTiming> out = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
             WordTiming wt = timings.get(i);
@@ -512,10 +520,14 @@ final class LyricsSpanBuilder {
                 anyRoman = true;
                 r = r + (trailSpace ? " " : "");
             }
-            out.add(new WordTiming(wt.start(), wt.end(), wt.startMs(), wt.endMs(), r, trailSpace));
+            if (wt.ruby() != null && !wt.ruby().trim().isEmpty()) {
+                anyRuby = true;
+            }
+            out.add(new WordTiming(wt.start(), wt.end(), wt.startMs(), wt.endMs(),
+                    r.isEmpty() ? null : r, trailSpace, wt.ruby()));
         }
 
-        return anyRoman ? out : null;
+        return (anyRoman || anyRuby) ? out : null;
     }
 
     /**
@@ -785,6 +797,26 @@ final class LyricsSpanBuilder {
         if (romanizedLines != null && index < romanizedLines.size()) {
             List<Word> words = romanizedLines.get(index).words();
             if (!words.isEmpty()) {
+                List<Word> origWords = line.words();
+                if (origWords != null && !origWords.isEmpty()) {
+                    boolean origHasRuby = false;
+                    for (Word ow : origWords) {
+                        if (ow.ruby() != null) {
+                            origHasRuby = true;
+                            break;
+                        }
+                    }
+                    if (origHasRuby) {
+                        List<Word> merged = new ArrayList<>(words.size());
+                        for (int i = 0; i < words.size(); i++) {
+                            Word w = words.get(i);
+                            String ruby = (w.ruby() != null) ? w.ruby() :
+                                    (i < origWords.size() ? origWords.get(i).ruby() : null);
+                            merged.add(new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), w.endsWithSpace(), ruby));
+                        }
+                        return merged;
+                    }
+                }
                 return words;
             }
         }
@@ -802,7 +834,7 @@ final class LyricsSpanBuilder {
             }
             closed.add(end > span.endMs()
                     ? new WordTiming(span.start(), span.end(), span.startMs(), end,
-                    span.romaji(), span.hasTrailingSpace())
+                    span.romaji(), span.hasTrailingSpace(), span.ruby())
                     : span);
         }
         return closed;
@@ -1158,7 +1190,8 @@ final class LyricsSpanBuilder {
                 WordTiming prev = timings.get(lastIdx);
                 if (!prev.hasTrailingSpace()) {
                     timings.set(lastIdx, new WordTiming(
-                            prev.start(), prev.end(), prev.startMs(), prev.endMs(), prev.romaji(), true));
+                            prev.start(), prev.end(), prev.startMs(), prev.endMs(), prev.romaji(),
+                            true, prev.ruby()));
                 }
             }
             return;
@@ -1196,7 +1229,7 @@ final class LyricsSpanBuilder {
                 if (prev.end() == sp[0]) {
                     final boolean trail = sp[1] < textLength && Character.isWhitespace(text.charAt(sp[1]));
                     timings.set(lastIdx, new WordTiming(
-                            prev.start(), sp[1], prev.startMs(), prev.endMs(), prev.romaji(), trail));
+                            prev.start(), sp[1], prev.startMs(), prev.endMs(), prev.romaji(), trail, prev.ruby()));
                     continue;
                 }
             }

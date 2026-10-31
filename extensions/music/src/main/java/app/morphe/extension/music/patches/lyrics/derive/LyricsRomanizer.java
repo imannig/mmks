@@ -707,7 +707,7 @@ public final class LyricsRomanizer {
             for (int wIdx = 0; wIdx < count; wIdx++) {
                 Word w = origWords.get(wIdx);
                 String rom = (wIdx < alignedChunks.size() && alignedChunks.get(wIdx) != null) ? alignedChunks.get(wIdx) : "";
-                romanizedWords.add(new Word(w.startMs(), w.endMs(), w.text(), rom, w.endsWithSpace()));
+            romanizedWords.add(new Word(w.startMs(), w.endMs(), w.text(), rom, w.endsWithSpace(), w.ruby()));
                 lineRomBuilder.append(rom);
             }
 
@@ -1201,7 +1201,7 @@ public final class LyricsRomanizer {
             for (int w = 0; w < origWords.size(); w++) {
                 Word ow = origWords.get(w);
                 String chunk = (w < alignedChunks.size()) ? alignedChunks.get(w) : "";
-                rWords.add(new Word(ow.startMs(), ow.endMs(), ow.text(), chunk, ow.endsWithSpace()));
+                rWords.add(new Word(ow.startMs(), ow.endMs(), ow.text(), chunk, ow.endsWithSpace(), ow.ruby()));
             }
             out.add(new LyricsLine(orig.startTimeMs(), orig.endTimeMs(), fullRoma, rWords,
                     orig.agentId(), orig.isDuet(), orig.isBG(), orig.songPart()));

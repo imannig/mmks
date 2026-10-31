@@ -148,8 +148,8 @@ public record Lyrics(List<LyricsLine> lines, String providerName, boolean synced
                     newEnd = newStart + 50;
                 }
 
-                fixed[j] = new Word(newStart, newEnd, w.text(), w.romaji(),
-                        w.endsWithSpace());
+                    fixed[j] = new Word(newStart, newEnd, w.text(), w.romaji(),
+                            w.endsWithSpace(), w.ruby());
                 prevEnd = newEnd;
                 changed = true;
             }
@@ -206,7 +206,7 @@ public record Lyrics(List<LyricsLine> lines, String providerName, boolean synced
             if (effectiveEnd != lastWord.endMs()) {
                 List<Word> newWords = new ArrayList<>(words);
                 newWords.set(lastIdx, new Word(lastWord.startMs(), effectiveEnd,
-                        lastWord.text(), lastWord.romaji(), lastWord.endsWithSpace()));
+                        lastWord.text(), lastWord.romaji(), lastWord.endsWithSpace(), lastWord.ruby()));
                 out.set(i, new LyricsLine(line.startTimeMs(), line.endTimeMs(),
                         line.text(), newWords, line.agentId(), line.isDuet(),
                         line.isBG(), line.songPart()));

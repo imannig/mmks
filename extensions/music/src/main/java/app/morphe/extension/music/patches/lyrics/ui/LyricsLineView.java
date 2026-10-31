@@ -1321,7 +1321,7 @@ final class LyricsLineView extends TextView {
         List<RomanizedWordCluster>[] rubyLines = hasRuby
                 ? groupRomanClustersByLine(rubyClusters, lineCount) : null;
         RomanLineStatics[] rubyStatics = hasRuby
-                ? buildRubyStatics(rubyLines, charXMap, romanStartShift, lineBaselines, lineLefts, lineStarts, lineCount, fontSizePx, totalW) : null;
+                ? buildRubyStatics(rubyLines, charXMap, romanStartShift, lineBaselines, lineLefts, lineStarts, lineCount, fontSizePx, lineExtraHeight, totalW) : null;
 
         // Where each syllable's sweep starts and ends, from the same positions it is drawn at.
         final int sylCount = alignedSyllables.size();
@@ -2048,7 +2048,7 @@ final class LyricsLineView extends TextView {
         return result;
     }
 
-    private static RomanLineStatics[] buildRubyStatics(
+    static RomanLineStatics[] buildRubyStatics(
             List<RomanizedWordCluster>[] rubyLines,
             float[] charXMap,
             float[] romanStartShift,
@@ -2057,6 +2057,7 @@ final class LyricsLineView extends TextView {
             float[] lineStarts,
             int lineCount,
             float fontSizePx,
+            float lineExtraHeight,
             float totalWidth) {
         if (rubyLines == null) {
             return null;
@@ -2081,8 +2082,9 @@ final class LyricsLineView extends TextView {
                         ? romanStartShift[c.wordIndex()] : 0f;
                 drawX[i] = gx - lineStart + lineLeft + shift;
             }
-            final float baseLineY = li < lineBaselines.length ? lineBaselines[li] : fontSizePx;
-            final float y = baseLineY - fontSizePx * 1.25f;
+            final float baseBaseline = li < lineBaselines.length
+                    ? lineBaselines[li] : (fontSizePx * 0.8f);
+            final float y = baseBaseline + li * lineExtraHeight - fontSizePx * 1.25f;
             lines[li] = new RomanLineStatics(cs, drawX, y);
         }
         return lines;

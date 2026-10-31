@@ -743,13 +743,13 @@ public final class TTMLParser {
             final Word first = mainWords.get(0);
             if (first.text().startsWith(" ")) {
                 mainWords.set(0, new Word(first.startMs(), first.endMs(),
-                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace()));
+                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace(), first.ruby()));
             }
             final int lastIdx = mainWords.size() - 1;
             final Word last = mainWords.get(lastIdx);
             if (last.text().endsWith(" ") || last.endsWithSpace()) {
                 mainWords.set(lastIdx, new Word(last.startMs(), last.endMs(),
-                        last.text().trim(), last.romaji(), false));
+                        last.text().trim(), last.romaji(), false, last.ruby()));
             }
         }
 
@@ -757,13 +757,13 @@ public final class TTMLParser {
             final Word first = bgWords.get(0);
             if (first.text().startsWith(" ")) {
                 bgWords.set(0, new Word(first.startMs(), first.endMs(),
-                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace()));
+                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace(), first.ruby()));
             }
             final int lastIdx = bgWords.size() - 1;
             final Word last = bgWords.get(lastIdx);
             if (last.text().endsWith(" ") || last.endsWithSpace()) {
                 bgWords.set(lastIdx, new Word(last.startMs(), last.endMs(),
-                        last.text().trim(), last.romaji(), false));
+                        last.text().trim(), last.romaji(), false, last.ruby()));
             }
         }
 
@@ -936,11 +936,6 @@ public final class TTMLParser {
                             bgWords.add(new Word(bgWordBegin, bgWordEnd, text, null,
                                     endsWithSpace));
                         }
-                    } else if (inBg && bgWrapperDepth > 0) {
-                        bgWrapperDepth--;
-                    } else if (inBg) {
-                        flushBgLine(bgLines, bgWords, bgFullText, bgBeginMs, bgEndMs, pBegin, pEnd);
-                        inBg = false;
                     } else if (inRubyText && inRubyContainer) {
                         inRubyText = false;
                         final String text = normalizeText(rubyTextBuf.toString());
@@ -967,19 +962,19 @@ public final class TTMLParser {
                                 if (rRoma.length() > 0) rRoma.append(' ');
                                 rRoma.append(rs.text());
                             }
-                                final String rubyText = rRoma.length() > 0 ? rRoma.toString() : null;
-                                final String romaji = rubyText != null
-                                        ? (ScriptDetector.containsKana(rubyText) ? KanaRomanizer.romanize(rubyText).trim() : rubyText)
-                                        : null;
+                final String rubyText = rRoma.length() > 0 ? rRoma.toString() : null;
+                final String romaji = rubyText != null
+                        ? (ScriptDetector.containsKana(rubyText) ? KanaRomanizer.romanize(rubyText).trim() : rubyText)
+                        : null;
 
-                                // The base is the sung text either way, only the line differs.
-                                if (inBg) {
-                                    bgFullText.append(baseText);
-                                    bgWords.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
-                                } else {
-                                    fullText.append(baseText);
-                                    words.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
-                                }
+                // The base is the sung text either way, only the line differs.
+                if (inBg) {
+                    bgFullText.append(baseText);
+                    bgWords.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
+                } else {
+                    fullText.append(baseText);
+                    words.add(new Word(rBegin, rEnd, baseText, romaji, false, rubyText));
+                }
                             }
                     } else if (inBg && bgWrapperDepth > 0) {
                         bgWrapperDepth--;
@@ -1149,13 +1144,13 @@ public final class TTMLParser {
             final Word first = words.get(0);
             if (first.text().startsWith(" ")) {
                 words.set(0, new Word(first.startMs(), first.endMs(),
-                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace()));
+                        first.text().substring(1).trim(), first.romaji(), first.endsWithSpace(), first.ruby()));
             }
             final int lastIdx = words.size() - 1;
             final Word last = words.get(lastIdx);
             if (last.text().endsWith(" ") || last.endsWithSpace()) {
                 words.set(lastIdx, new Word(last.startMs(), last.endMs(),
-                        last.text().trim(), last.romaji(), false));
+                        last.text().trim(), last.romaji(), false, last.ruby()));
             }
         }
 

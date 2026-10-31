@@ -155,8 +155,8 @@ public final class LocalRomanizer {
                 read.add(word);
                 continue;
             }
-            read.add(new Word(word.startMs(), word.endMs(), word.text(), reading,
-                    word.endsWithSpace()));
+                read.add(new Word(word.startMs(), word.endMs(), word.text(), reading,
+                        word.endsWithSpace(), word.ruby()));
             any = true;
         }
 
@@ -196,7 +196,7 @@ public final class LocalRomanizer {
                 syllables.append(reading, tokens[at][0], tokens[at][1]);
             }
             read.add(new Word(word.startMs(), word.endMs(), word.text(), syllables.toString(),
-                    word.endsWithSpace()));
+                    word.endsWithSpace(), word.ruby()));
         }
         return read;
     }
@@ -300,10 +300,10 @@ public final class LocalRomanizer {
                 if (previous.romaji() == null || previous.romaji().isEmpty()) continue;
                 if (!previous.romaji().endsWith(text)) {
                     read.set(at, new Word(previous.startMs(), previous.endMs(), previous.text(),
-                            previous.romaji() + text, previous.endsWithSpace()));
+                            previous.romaji() + text, previous.endsWithSpace(), previous.ruby()));
                 }
                 read.set(i, new Word(read.get(i).startMs(), read.get(i).endMs(),
-                        read.get(i).text(), "", read.get(i).endsWithSpace()));
+                        read.get(i).text(), "", read.get(i).endsWithSpace(), read.get(i).ruby()));
                 break;
             }
         }

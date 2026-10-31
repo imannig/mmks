@@ -441,7 +441,7 @@ public final class LRCParser {
             int lastIdx = words.size() - 1;
             Word last = words.get(lastIdx);
             if (pendingStart > last.startMs()) {
-                words.set(lastIdx, new Word(last.startMs(), pendingStart, last.text(), last.romaji(), last.endsWithSpace()));
+                words.set(lastIdx, new Word(last.startMs(), pendingStart, last.text(), last.romaji(), last.endsWithSpace(), last.ruby()));
             }
         }
 
@@ -482,7 +482,7 @@ public final class LRCParser {
         final Word previous = words.get(words.size() - 1);
         if (!previous.endsWithSpace()) {
             words.set(words.size() - 1, new Word(previous.startMs(), previous.endMs(),
-                    previous.text(), previous.romaji(), true));
+                    previous.text(), previous.romaji(), true, previous.ruby()));
         }
     }
 

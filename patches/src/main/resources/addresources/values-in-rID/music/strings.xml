@@ -585,6 +585,9 @@ Cookie yang diperlukan: SID, HSID, SSID, SAPISID, __Secure-3PAPISID, __Secure-1P
   <string name="morphe_music_lyrics_search_artist_hint">Artis</string>
   <string name="morphe_music_lyrics_search_empty">Masukkan judul lagu dan artis</string>
   <string name="morphe_music_lyrics_search_no_providers">Tidak ada penyedia yang diaktifkan yang dapat mencari lagu lain.</string>
+  <string name="morphe_music_lyrics_provider_dialog_title">Penyedia Lirik</string>
+  <string name="morphe_music_lyrics_search_dialog_desc">Cari lirik secara manual berdasarkan judul lagu dan artis</string>
+  <string name="morphe_music_lyrics_not_available_on_provider">Lirik tidak tersedia di %s</string>
   <string name="morphe_music_lyrics_saved">Tersimpan</string>
   <string name="morphe_music_lyrics_word_sync_title">Sorot kata atau suku kata yang disinkronkan</string>
   <string name="morphe_music_lyrics_word_sync_summary">Utamakan lirik kata per kata jika tersedia. Setiap kata atau suku kata akan disorot sesuai irama musik.</string>

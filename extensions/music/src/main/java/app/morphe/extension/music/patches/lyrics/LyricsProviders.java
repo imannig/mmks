@@ -80,7 +80,7 @@ public final class LyricsProviders {
         return enabledProviderIds(Settings.LYRICS_SOURCE.get()).contains(id);
     }
 
-    private static List<String> enabledProviderIds(String order) {
+    static List<String> enabledProviderIds(String order) {
         List<String> result = new ArrayList<>();
         if (order == null || !order.contains(",")) {
             order = Settings.DEFAULT_LYRICS_ORDER;
@@ -116,7 +116,7 @@ public final class LyricsProviders {
     }
 
     @Nullable
-    private static LyricsProvider providerFor(String id) {
+    static LyricsProvider providerFor(String id) {
         return switch (id) {
             case "YTMusic" -> new YouTubeMusicProvider();
             case "Captions" -> new CaptionsFetcher.CaptionsProvider();

@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -2862,9 +2863,205 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
     private void onRefreshLongPressed() {
         try {
-            openSearchDialog();
+            openRefreshOptionsDialog();
         } catch (Throwable ignored) {
         }
+    }
+
+    private void openRefreshOptionsDialog() {
+        final Context context = getContext();
+        if (context == null || refreshView == null) {
+            return;
+        }
+        LyricsManager manager = LyricsManager.getInstance();
+        TrackInfo track = manager.getCurrentTrack();
+        if (track == null) {
+            return;
+        }
+
+        List<LyricsManager.ProviderInfo> providers = manager.getAvailableProvidersForCurrentTrack();
+        boolean isIndo = Locale.getDefault().getLanguage().startsWith("in") || Locale.getDefault().getLanguage().startsWith("id");
+        String cancelText = isIndo ? "Batal" : "Cancel";
+
+        Pair<Dialog, LinearLayout> dialogPair = CustomDialog.create(
+                context,
+                str("morphe_music_lyrics_provider_dialog_title"),
+                null,
+                null,
+                null,
+                null,
+                () -> {},
+                cancelText,
+                null,
+                false
+        );
+
+        Dialog dialog = dialogPair.first;
+        LinearLayout mainLayout = dialogPair.second;
+
+        ScrollView scroll = new ScrollView(context);
+        scroll.setVerticalScrollBarEnabled(false);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        scrollLp.topMargin = Dim.dp8;
+        scrollLp.bottomMargin = Dim.dp8;
+
+        LinearLayout list = new LinearLayout(context);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout searchItem = new LinearLayout(context);
+        searchItem.setOrientation(LinearLayout.HORIZONTAL);
+        searchItem.setGravity(Gravity.CENTER_VERTICAL);
+        searchItem.setPadding(Dim.dp16, Dim.dp12, Dim.dp16, Dim.dp12);
+        searchItem.setClickable(true);
+        searchItem.setFocusable(true);
+
+        GradientDrawable searchBg = new GradientDrawable();
+        searchBg.setShape(GradientDrawable.RECTANGLE);
+        searchBg.setCornerRadius(Dim.dp10);
+        searchBg.setColor(0x22FFFFFF);
+        searchBg.setStroke(Dim.dp(1), 0x44FFFFFF);
+        searchItem.setBackground(searchBg);
+
+        LinearLayout.LayoutParams searchLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        searchLp.bottomMargin = Dim.dp12;
+        searchItem.setLayoutParams(searchLp);
+
+        LinearLayout searchTextCol = new LinearLayout(context);
+        searchTextCol.setOrientation(LinearLayout.VERTICAL);
+        searchTextCol.setLayoutParams(new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView searchTitleTv = new TextView(context);
+        searchTitleTv.setText(str("morphe_music_lyrics_search_dialog_title"));
+        searchTitleTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        searchTitleTv.setTypeface(Typeface.DEFAULT_BOLD);
+        searchTitleTv.setTextColor(Color.WHITE);
+        searchTextCol.addView(searchTitleTv);
+
+        TextView searchDescTv = new TextView(context);
+        searchDescTv.setText(str("morphe_music_lyrics_search_dialog_desc"));
+        searchDescTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        searchDescTv.setTextColor(0x88FFFFFF);
+        searchTextCol.addView(searchDescTv);
+
+        searchItem.addView(searchTextCol);
+
+        TextView searchBadge = new TextView(context);
+        searchBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        searchBadge.setTypeface(Typeface.DEFAULT_BOLD);
+        searchBadge.setPadding(Dim.dp8, Dim.dp4, Dim.dp8, Dim.dp4);
+        GradientDrawable searchBadgeBg = new GradientDrawable();
+        searchBadgeBg.setShape(GradientDrawable.RECTANGLE);
+        searchBadgeBg.setCornerRadius(Dim.dp6);
+        searchBadge.setText("SEARCH");
+        searchBadge.setTextColor(0xFF000000);
+        searchBadgeBg.setColor(0xFFFFD54F);
+        searchBadge.setBackground(searchBadgeBg);
+        searchItem.addView(searchBadge);
+
+        searchItem.setOnClickListener(v -> {
+            dialog.dismiss();
+            openSearchDialog();
+        });
+        list.addView(searchItem);
+
+        for (LyricsManager.ProviderInfo p : providers) {
+            LinearLayout item = new LinearLayout(context);
+            item.setOrientation(LinearLayout.HORIZONTAL);
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setPadding(Dim.dp16, Dim.dp12, Dim.dp16, Dim.dp12);
+            item.setClickable(true);
+            item.setFocusable(true);
+
+            GradientDrawable itemBg = new GradientDrawable();
+            itemBg.setShape(GradientDrawable.RECTANGLE);
+            itemBg.setCornerRadius(Dim.dp10);
+            if (p.isCurrent()) {
+                itemBg.setColor(0x33FFFFFF);
+                itemBg.setStroke(Dim.dp(1), 0x80FFFFFF);
+            } else {
+                itemBg.setColor(0x14FFFFFF);
+            }
+            item.setBackground(itemBg);
+
+            LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            itemLp.bottomMargin = Dim.dp8;
+            item.setLayoutParams(itemLp);
+
+            LinearLayout textCol = new LinearLayout(context);
+            textCol.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams colLp = new LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+            colLp.setMarginEnd(Dim.dp12);
+            textCol.setLayoutParams(colLp);
+
+            TextView nameTv = new TextView(context);
+            nameTv.setText(p.name());
+            nameTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+            nameTv.setTypeface(Typeface.DEFAULT_BOLD);
+            nameTv.setTextColor(p.isCurrent() ? Color.WHITE : 0xDDFFFFFF);
+            textCol.addView(nameTv);
+
+            String syncDesc;
+            if (!p.isEnabled()) {
+                syncDesc = "Disabled in settings";
+            } else if (p.syncType() == LyricsManager.SYNC_TYPE_WORD) {
+                syncDesc = "Word-synced";
+            } else if (p.syncType() == LyricsManager.SYNC_TYPE_LINE) {
+                syncDesc = "Line-synced";
+            } else {
+                syncDesc = "Plain lyrics";
+            }
+
+            TextView descTv = new TextView(context);
+            descTv.setText(syncDesc);
+            descTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            descTv.setTextColor(0x88FFFFFF);
+            textCol.addView(descTv);
+
+            item.addView(textCol);
+
+            TextView statusBadge = new TextView(context);
+            statusBadge.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+            statusBadge.setTypeface(Typeface.DEFAULT_BOLD);
+            statusBadge.setPadding(Dim.dp8, Dim.dp4, Dim.dp8, Dim.dp4);
+
+            GradientDrawable badgeBg = new GradientDrawable();
+            badgeBg.setShape(GradientDrawable.RECTANGLE);
+            badgeBg.setCornerRadius(Dim.dp6);
+
+            if (p.isCurrent()) {
+                statusBadge.setText("ACTIVE");
+                statusBadge.setTextColor(0xFF000000);
+                badgeBg.setColor(0xFFFFFFFF);
+            } else if (p.statusCode() == LyricsManager.STATUS_AVAILABLE) {
+                statusBadge.setText("AVAILABLE");
+                statusBadge.setTextColor(0xFF81C784);
+                badgeBg.setColor(0x3381C784);
+            } else {
+                statusBadge.setText("FETCH");
+                statusBadge.setTextColor(0xFF90CAF9);
+                badgeBg.setColor(0x3390CAF9);
+            }
+            statusBadge.setBackground(badgeBg);
+            item.addView(statusBadge);
+
+            item.setOnClickListener(v -> {
+                dialog.dismiss();
+                refreshInProgress = true;
+                setButtonLabel(refreshView, str("morphe_music_lyrics_refreshing"), true);
+                manager.fetchExplicitProvider(p.id());
+            });
+
+            list.addView(item);
+        }
+
+        scroll.addView(list);
+        mainLayout.addView(scroll, 1, scrollLp);
+        dialog.show();
     }
 
     /**

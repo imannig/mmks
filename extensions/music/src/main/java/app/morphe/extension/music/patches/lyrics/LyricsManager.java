@@ -17,10 +17,13 @@ import android.view.Choreographer;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import static app.morphe.extension.shared.StringRef.str;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -2340,6 +2343,191 @@ public final class LyricsManager {
     record ProviderFetch(@Nullable Lyrics lyrics, int matchScore, boolean highMatch,
                          boolean blind, int penalty) {
     }
+    public static final int STATUS_ACTIVE = 0;
+    public static final int STATUS_AVAILABLE = 1;
+    public static final int STATUS_FETCHABLE = 2;
 
+    public static final int SYNC_TYPE_WORD = 2;
+    public static final int SYNC_TYPE_LINE = 1;
+    public static final int SYNC_TYPE_PLAIN = 0;
 
+    public record ProviderInfo(
+            String id,
+            String name,
+            int syncType,
+            int statusCode,
+            boolean isCurrent,
+            boolean isEnabled) {}
+
+    @NonNull
+    public List<ProviderInfo> getAvailableProvidersForCurrentTrack() {
+        TrackInfo track = currentTrack;
+        List<ProviderInfo> result = new ArrayList<>(LyricsProviders.PROVIDER_ORDER.size());
+        if (track == null) {
+            return result;
+        }
+
+        String curProviderName = (currentLyrics != null && currentLyrics != Lyrics.NOT_FOUND)
+                ? currentLyrics.providerName() : "";
+        Map<String, Lyrics> known = new HashMap<>();
+        if (currentLyrics != null && currentLyrics != Lyrics.NOT_FOUND) {
+            known.put(currentLyrics.providerName().toLowerCase(Locale.ROOT), currentLyrics);
+        }
+        synchronized (candidateQueue) {
+            for (ScoredCandidate sc : candidateQueue) {
+                String p = sc.lyrics().providerName().toLowerCase(Locale.ROOT);
+                if (!known.containsKey(p)) {
+                    known.put(p, sc.lyrics());
+                }
+            }
+        }
+
+        List<String> enabledList = LyricsProviders.enabledProviderIds(Settings.LYRICS_SOURCE.get());
+
+        for (String id : LyricsProviders.PROVIDER_ORDER) {
+            LyricsProvider p = LyricsProviders.providerFor(id);
+            if (p == null) continue;
+            String name = p.name();
+            String nameLower = name.toLowerCase(Locale.ROOT);
+
+            Lyrics lyr = known.get(nameLower);
+            if (lyr == null) {
+                lyr = LyricsCache.get(track, name, preferenceVideoId);
+                if (lyr == Lyrics.NOT_FOUND) lyr = null;
+            }
+
+            boolean isCurrent = !curProviderName.isEmpty()
+                    && (name.equalsIgnoreCase(curProviderName) || id.equalsIgnoreCase(curProviderName));
+            boolean isEnabled = enabledList.contains(id);
+
+            int syncType;
+            int statusCode;
+            if (lyr != null) {
+                syncType = (LyricsRequests.syncRank(lyr) >= 2)
+                        ? SYNC_TYPE_WORD
+                        : (lyr.synced() ? SYNC_TYPE_LINE : SYNC_TYPE_PLAIN);
+                statusCode = isCurrent ? STATUS_ACTIVE : STATUS_AVAILABLE;
+            } else {
+                syncType = defaultSyncTypeForProvider(id);
+                statusCode = STATUS_FETCHABLE;
+            }
+
+            result.add(new ProviderInfo(id, name, syncType, statusCode, isCurrent, isEnabled));
+        }
+        return result;
+    }
+
+    private static int defaultSyncTypeForProvider(String id) {
+        if ("QQ".equalsIgnoreCase(id) || "KuGou".equalsIgnoreCase(id) || "NetEase".equalsIgnoreCase(id)
+                || "AMLL".equalsIgnoreCase(id) || "LunaBeat".equalsIgnoreCase(id) || "LrcRed".equalsIgnoreCase(id)
+                || "Spotify".equalsIgnoreCase(id) || "Apple".equalsIgnoreCase(id) || "Musixmatch".equalsIgnoreCase(id)) {
+            return SYNC_TYPE_WORD;
+        } else if ("LRCLIB".equalsIgnoreCase(id) || "YTMusic".equalsIgnoreCase(id) || "SimpMusic".equalsIgnoreCase(id)
+                || "Luna".equalsIgnoreCase(id) || "bLyrics".equalsIgnoreCase(id) || "BiniLyrics".equalsIgnoreCase(id)
+                || "Unison".equalsIgnoreCase(id) || "Deezer".equalsIgnoreCase(id) || "Lyricify".equalsIgnoreCase(id)
+                || "PetitLyrics".equalsIgnoreCase(id)) {
+            return SYNC_TYPE_LINE;
+        } else {
+            return SYNC_TYPE_PLAIN;
+        }
+    }
+
+    public void fetchExplicitProvider(String providerId) {
+        Utils.verifyOnMainThread();
+        TrackInfo track = currentTrack;
+        if (track == null) {
+            return;
+        }
+
+        final Lyrics previousLyrics = currentLyrics;
+        final int id = requestId.incrementAndGet();
+
+        if (previousLyrics == null || previousLyrics.isEmpty()) {
+            setState(State.LOADING, null);
+        } else {
+            state = State.LOADING;
+            for (Listener listener : new ArrayList<>(listeners)) {
+                listener.onLyricsChanged(State.LOADING, previousLyrics);
+            }
+        }
+
+        runOnLookupThread(() -> {
+            synchronized (candidateQueue) {
+                for (ScoredCandidate sc : candidateQueue) {
+                    if (providerId.equalsIgnoreCase(sc.lyrics().providerName())
+                            && LyricsMatch.isValidLyrics(sc.lyrics(), track)) {
+                        if (!LyricsRequests.isCustomMatchMode()) {
+                            LyricsCache.put(track, LyricsMatch.cacheSourceFor(sc.lyrics()), sc.lyrics(), preferenceVideoId);
+                        }
+                        publishFromLookup(id, sc.lyrics());
+                        return;
+                    }
+                }
+            }
+
+            Lyrics cached = LyricsCache.get(track, providerId, preferenceVideoId);
+            if (cached != null && cached != Lyrics.NOT_FOUND && LyricsMatch.isValidLyrics(cached, track)) {
+                publishFromLookup(id, cached);
+                return;
+            }
+
+            LyricsProvider provider = LyricsProviders.providerFor(providerId);
+            if (provider == null) {
+                restoreOrNotFound(id, previousLyrics, providerId);
+                return;
+            }
+
+            try {
+                LyricsProvider.FetchResult res = provider.fetch(track);
+                Lyrics fetched = res != null ? res.lyrics() : null;
+                if (fetched != null && LyricsMatch.isValidLyrics(fetched, track)) {
+                    if (!LyricsRequests.isCustomMatchMode()) {
+                        LyricsCache.put(track, LyricsMatch.cacheSourceFor(fetched), fetched, preferenceVideoId);
+                    }
+                    publishFromLookup(id, fetched);
+                    return;
+                }
+            } catch (Exception ex) {
+                Logger.printDebug(() -> "Explicit provider fetch failed: " + providerId, ex);
+            }
+
+            if (provider.hasCandidates()) {
+                try {
+                    List<Lyrics.ScoredLyrics> candidates = provider.fetchCandidates(track);
+                    if (candidates != null && !candidates.isEmpty()) {
+                        for (Lyrics.ScoredLyrics c : candidates) {
+                            Lyrics cLyr = c != null ? c.lyrics() : null;
+                            if (cLyr != null && LyricsMatch.isValidLyrics(cLyr, track)) {
+                                if (!LyricsRequests.isCustomMatchMode()) {
+                                    LyricsCache.put(track, LyricsMatch.cacheSourceFor(cLyr), cLyr, preferenceVideoId);
+                                }
+                                publishFromLookup(id, cLyr);
+                                return;
+                            }
+                        }
+                    }
+                } catch (Exception ex) {
+                    Logger.printDebug(() -> "Explicit candidate fetch failed: " + providerId, ex);
+                }
+            }
+
+            restoreOrNotFound(id, previousLyrics, providerId);
+        });
+    }
+
+    private void restoreOrNotFound(int id, @Nullable Lyrics previousLyrics, String providerId) {
+        Utils.runOnMainThread(() -> {
+            if (id != requestId.get()) return;
+            if (previousLyrics != null && !previousLyrics.isEmpty()) {
+                currentLyrics = previousLyrics;
+                state = State.LOADED;
+                Utils.showToastShort(str("morphe_music_lyrics_not_available_on_provider", providerId));
+                for (Listener listener : new ArrayList<>(listeners)) {
+                    listener.onLyricsChanged(State.LOADED, previousLyrics);
+                }
+            } else {
+                setState(State.NOT_FOUND, null);
+            }
+        });
+    }
 }

@@ -858,8 +858,9 @@ public final class TTMLParser {
                     rubyBaseBuf.setLength(0);
                     if (beginAttr != null) rubyContainerBegin = parseTime(beginAttr);
                     if (endAttr != null) rubyContainerEnd = parseTime(endAttr);
+                } else if ("textContainer".equals(ruby) && inRubyContainer) {
                     inRubyTextContainer = true;
-                } else if ("text".equals(ruby) && inRubyTextContainer) {
+                } else if ("text".equals(ruby) && (inRubyTextContainer || inRubyContainer)) {
                     inRubyText = true;
                     rubyTextBuf.setLength(0);
                     rubyTextBegin = parseTime(beginAttr);
@@ -947,10 +948,10 @@ public final class TTMLParser {
                             rubyTags.add(new RomajiSyllable(
                                     rubyTextBegin, rubyTextEnd, text));
                         }
-                    } else if (inRubyTextContainer && inRubyContainer) {
-                        inRubyTextContainer = false;
                     } else if (inRubyBase && inRubyContainer) {
                         inRubyBase = false;
+                    } else if (inRubyTextContainer && inRubyContainer) {
+                        inRubyTextContainer = false;
                     } else if (inRubyContainer) {
                         inRubyContainer = false;
                         final String baseText = normalizeText(rubyBaseBuf.toString());
@@ -1046,6 +1047,8 @@ public final class TTMLParser {
                     rubyBaseBuf.append(raw);
                 } else if (inRubyText && inRubyContainer) {
                     rubyTextBuf.append(raw);
+                } else if (inRubyContainer) {
+                    // Ignore text outside base & text in ruby container
                 } else if (inBg && bgWrapperDepth == 0) {
                     if (isWhitespace) {
                         if (!bgWords.isEmpty()) {

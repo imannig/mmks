@@ -823,6 +823,7 @@ public final class TTMLParser {
         boolean inRubyText = false;
         final StringBuilder rubyTextBuf = new StringBuilder();
         long rubyTextBegin = 0, rubyTextEnd = 0;
+        long rubyContainerBegin = 0, rubyContainerEnd = 0;
         final List<RomajiSyllable> rubyTags = new ArrayList<>();
 
         int depth = 1;
@@ -850,10 +851,13 @@ public final class TTMLParser {
                     inRubyContainer = true;
                     rubyBaseBuf.setLength(0);
                     rubyTags.clear();
+                    rubyContainerBegin = parseTime(beginAttr);
+                    rubyContainerEnd = parseTime(endAttr);
                 } else if ("base".equals(ruby) && inRubyContainer) {
                     inRubyBase = true;
                     rubyBaseBuf.setLength(0);
-                } else if ("textContainer".equals(ruby) && inRubyContainer) {
+                    if (beginAttr != null) rubyContainerBegin = parseTime(beginAttr);
+                    if (endAttr != null) rubyContainerEnd = parseTime(endAttr);
                     inRubyTextContainer = true;
                 } else if ("text".equals(ruby) && inRubyTextContainer) {
                     inRubyText = true;
@@ -951,11 +955,15 @@ public final class TTMLParser {
                         inRubyContainer = false;
                         final String baseText = normalizeText(rubyBaseBuf.toString());
                         if (!baseText.isEmpty()) {
-                            long rBegin = 0, rEnd = 0;
-                            if (!rubyTags.isEmpty()) {
-                                rBegin = rubyTags.get(0).startMs();
-                                rEnd = rubyTags.get(rubyTags.size() - 1).endMs();
-                            }
+                    long rBegin = 0, rEnd = 0;
+                    if (!rubyTags.isEmpty()) {
+                        rBegin = rubyTags.get(0).startMs();
+                        rEnd = rubyTags.get(rubyTags.size() - 1).endMs();
+                    }
+                    if (rBegin == 0 && rEnd == 0) {
+                        rBegin = rubyContainerBegin;
+                        rEnd = rubyContainerEnd;
+                    }
                             StringBuilder rRoma = new StringBuilder();
                             for (RomajiSyllable rs : rubyTags) {
                                 //noinspection SizeReplaceableByIsEmpty

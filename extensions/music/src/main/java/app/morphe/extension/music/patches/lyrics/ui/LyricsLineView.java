@@ -1299,9 +1299,11 @@ final class LyricsLineView extends TextView {
         final int extraRubyHeightPx = Math.round(lineRubyExtraHeight);
 
         // Each lyric line makes room under it for its readings.
+        final boolean hasRoman = !romanClusters.isEmpty();
         final float lineExtraHeight = fontSizePx * 1.05f;
         final int bottomMargin = Math.round(fontSizePx * 0.25f);
-        final int extraRomanHeightPx = Math.round(lineCount * lineExtraHeight) + bottomMargin;
+        final int extraRomanHeightPx = hasRoman
+                ? (Math.round(lineCount * lineExtraHeight) + bottomMargin) : 0;
 
         float[] charXMap = buildCharXMap(
                 formattedMainText, mainLayout, lineCount, lineIsRtl, lineStarts);
@@ -1315,9 +1317,9 @@ final class LyricsLineView extends TextView {
                 clusters, romanStartShift, lineExtraHeight);
         List<RomanizedWordCluster>[] romanLines =
                 groupRomanClustersByLine(romanClusters, lineCount);
-        RomanLineStatics[] romanStatics = buildRomanStatics(
-                romanLines, charXMap, romanStartShift, lineBaselines, lineBottoms,
-                lineLefts, lineStarts, lineCount, fontSizePx, lineExtraHeight, totalW);
+        RomanLineStatics[] romanStatics = hasRoman
+                ? buildRomanStatics(romanLines, charXMap, romanStartShift, lineBaselines, lineBottoms,
+                lineLefts, lineStarts, lineCount, fontSizePx, lineExtraHeight, totalW) : null;
         List<RomanizedWordCluster>[] rubyLines = hasRuby
                 ? groupRomanClustersByLine(rubyClusters, lineCount) : null;
         RomanLineStatics[] rubyStatics = hasRuby
@@ -2145,7 +2147,7 @@ final class LyricsLineView extends TextView {
             }
         }
 
-        if (romaReveal > 0f && romaUnsungAlpha > 0) {
+        if (cache.romanLines != null && romaReveal > 0f && romaUnsungAlpha > 0) {
             RomanLineStatics[] romLines = cache.romanLines;
             for (int li = 0; li < romLines.length; li++) {
                 RomanLineStatics line = romLines[li];
@@ -2283,7 +2285,7 @@ final class LyricsLineView extends TextView {
         }
 
         // Each reading is lit as far as its own syllable is sung.
-        if (romaReveal > 0f) {
+        if (cache.romanLines != null && romaReveal > 0f) {
             final int romaSungAlpha = Math.round(lineAlpha * LyricsColors.ACTIVE_READING_ALPHA * 255f * contentNow * romaReveal);
             final int romaSungColor = readingRgb | (Math.max(0, Math.min(255, romaSungAlpha)) << 24);
             RomanLineStatics[] romLines = cache.romanLines;

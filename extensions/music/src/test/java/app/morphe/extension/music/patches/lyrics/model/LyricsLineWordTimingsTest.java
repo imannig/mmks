@@ -74,4 +74,9 @@ public class LyricsLineWordTimingsTest {
         assertEquals("no ru ma", word.romaji());
         assertEquals("Normal", word.ruby());
     }
+
+    @Test public void kanaHiraganaKatakanaConversions() {
+        assertEquals("ふかく", app.morphe.extension.music.patches.lyrics.romanizers.KanaRomanizer.toHiragana("フカク"));
+        assertEquals("フカク", app.morphe.extension.music.patches.lyrics.romanizers.KanaRomanizer.toKatakana("ふかく"));
+    }
 }

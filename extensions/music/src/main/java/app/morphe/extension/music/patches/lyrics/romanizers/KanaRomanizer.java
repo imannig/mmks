@@ -216,6 +216,98 @@ public final class KanaRomanizer {
         return c;
     }
 
+    public static String toHiragana(String kana) {
+        if (kana == null || kana.isEmpty()) return kana;
+        char[] chars = kana.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            char c = chars[i];
+            if (c >= 0x30A1 && c <= 0x30F6) {
+                chars[i] = (char) (c - (0x30A1 - 0x3041));
+            }
+        }
+        return new String(chars);
+    }
+
+    public static String toKatakana(String kana) {
+        if (kana == null || kana.isEmpty()) return kana;
+        char[] chars = kana.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            char c = chars[i];
+            if (c >= 0x3041 && c <= 0x3096) {
+                chars[i] = (char) (c + (0x30A1 - 0x3041));
+            }
+        }
+        return new String(chars);
+    }
+
+    private static final Map<String, String> ROMAJI_TABLE = new HashMap<>();
+    static {
+        String[][] pairs = {
+            {"a", "あ"}, {"i", "い"}, {"u", "う"}, {"e", "え"}, {"o", "お"},
+            {"ka", "か"}, {"ki", "き"}, {"ku", "く"}, {"ke", "け"}, {"ko", "こ"},
+            {"sa", "さ"}, {"shi", "し"}, {"si", "し"}, {"su", "す"}, {"se", "せ"}, {"so", "そ"},
+            {"ta", "た"}, {"chi", "ち"}, {"ti", "ち"}, {"tsu", "つ"}, {"tu", "つ"}, {"te", "て"}, {"to", "と"},
+            {"na", "な"}, {"ni", "に"}, {"nu", "ぬ"}, {"ne", "ね"}, {"no", "の"},
+            {"ha", "は"}, {"hi", "ひ"}, {"fu", "ふ"}, {"hu", "ふ"}, {"he", "へ"}, {"ho", "ほ"},
+            {"ma", "ま"}, {"mi", "み"}, {"mu", "む"}, {"me", "め"}, {"mo", "も"},
+            {"ya", "や"}, {"yu", "ゆ"}, {"yo", "よ"},
+            {"ra", "ら"}, {"ri", "り"}, {"ru", "る"}, {"re", "れ"}, {"ro", "ろ"},
+            {"wa", "わ"}, {"wo", "を"}, {"n", "ん"}, {"nn", "ん"},
+            {"ga", "が"}, {"gi", "ぎ"}, {"gu", "ぐ"}, {"ge", "げ"}, {"go", "ご"},
+            {"za", "ざ"}, {"ji", "じ"}, {"zi", "じ"}, {"zu", "ず"}, {"ze", "ぜ"}, {"zo", "ぞ"},
+            {"da", "だ"}, {"di", "ぢ"}, {"du", "づ"}, {"de", "で"}, {"do", "ど"},
+            {"ba", "ば"}, {"bi", "び"}, {"bu", "ぶ"}, {"be", "べ"}, {"bo", "ぼ"},
+            {"pa", "ぱ"}, {"pi", "ぴ"}, {"pu", "ぷ"}, {"pe", "ぺ"}, {"po", "ぽ"},
+            {"kya", "きゃ"}, {"kyu", "きゅ"}, {"kyo", "きょ"},
+            {"sha", "しゃ"}, {"shu", "しゅ"}, {"sho", "しょ"},
+            {"cha", "ちゃ"}, {"chu", "ちゅ"}, {"cho", "ちょ"},
+            {"nya", "にゃ"}, {"nyu", "にゅ"}, {"nyo", "にょ"},
+            {"hya", "ひゃ"}, {"hyu", "ひゅ"}, {"hyo", "ひょ"},
+            {"mya", "みゃ"}, {"myu", "みゅ"}, {"myo", "みょ"},
+            {"rya", "りゃ"}, {"ryu", "りゅ"}, {"ryo", "りょ"},
+            {"gya", "ぎゃ"}, {"gyu", "ぎゅ"}, {"gyo", "ぎょ"},
+            {"ja", "じゃ"}, {"ju", "じゅ"}, {"jo", "じょ"},
+            {"bya", "びゃ"}, {"byu", "びゅ"}, {"byo", "びょ"},
+            {"pya", "ぴゃ"}, {"pyu", "ぴゅ"}, {"pyo", "ぴょ"}
+        };
+        for (String[] p : pairs) {
+            ROMAJI_TABLE.put(p[0], p[1]);
+        }
+    }
+
+    public static String romajiToHiragana(String romaji) {
+        if (romaji == null || romaji.isEmpty()) return romaji;
+        String s = romaji.toLowerCase(Locale.ROOT).replace(" ", "");
+        StringBuilder out = new StringBuilder(s.length());
+        int i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (i + 1 < s.length() && c == s.charAt(i + 1) && "aeioun".indexOf(c) < 0) {
+                out.append('っ');
+                i++;
+                continue;
+            }
+            boolean matched = false;
+            for (int len = 3; len >= 1; len--) {
+                if (i + len <= s.length()) {
+                    String sub = s.substring(i, i + len);
+                    String h = ROMAJI_TABLE.get(sub);
+                    if (h != null) {
+                        out.append(h);
+                        i += len;
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+            if (!matched) {
+                out.append(c);
+                i++;
+            }
+        }
+        return out.toString();
+    }
+
     /** Whether a reading fits the one byte packing the dictionary file uses. */
     public static boolean isPackable(char c) {
         // Strictly above the base, since the escape in a reading table is a zero byte and

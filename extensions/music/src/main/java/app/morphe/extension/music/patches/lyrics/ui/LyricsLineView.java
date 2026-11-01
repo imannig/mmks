@@ -1287,7 +1287,8 @@ final class LyricsLineView extends TextView {
                 alignSyllablesForFormatting(wordTimings, rawMainText, formattedMainText);
         List<RomanizedWordCluster> romanClusters =
                 buildRomanizedWordClusters(alignedSyllables, formattedMainText, mainLayout, romPaint);
-        List<RomanizedWordCluster> rubyClusters = allowTransliteration
+        final boolean enableFurigana = Settings.LYRICS_ENABLE_FURIGANA.get();
+        List<RomanizedWordCluster> rubyClusters = enableFurigana
                 ? buildRubyClusters(alignedSyllables, formattedMainText, mainLayout, rubyPaint)
                 : Collections.emptyList();
         if (romanClusters.isEmpty() && rubyClusters.isEmpty()) {
@@ -1496,7 +1497,8 @@ final class LyricsLineView extends TextView {
 
         List<RomanizedWordCluster> romanClusters =
                 buildRomanizedWordClusters(alignedSyllables, mainText, unconstrained, romPaint);
-        List<RomanizedWordCluster> rubyClusters = rubyPaint != null
+        final boolean enableFurigana = Settings.LYRICS_ENABLE_FURIGANA.get();
+        List<RomanizedWordCluster> rubyClusters = (enableFurigana && rubyPaint != null)
                 ? buildRubyClusters(alignedSyllables, mainText, unconstrained, rubyPaint)
                 : Collections.emptyList();
         if (romanClusters.isEmpty() && rubyClusters.isEmpty()) {

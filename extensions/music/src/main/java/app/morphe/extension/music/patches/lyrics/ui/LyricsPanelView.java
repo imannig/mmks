@@ -147,7 +147,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
 
     /** Shows the pronunciation above each line, which the app's own romanize icon does. */
     private static final String APP_ROMANIZE_ICON = "morphe_yt_romanize";
-
+    private static final String APP_FURIGANA_ICON = "morphe_yt_furigana";
     private static final String REFRESH_ICON = "ic_mtrl_arrow_circle";
 
     /** Own icon, because the app ships no copy icon of its own. */
@@ -166,6 +166,8 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
     private TextView translateView;
     @Nullable
     private TextView romanizeView;
+    @Nullable
+    private TextView furiganaView;
     /** The pill standing in for both buttons while the dual mode is up. */
     @Nullable
     private TextView dualPillView;
@@ -906,9 +908,12 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                         }
                         if (Settings.LYRICS_ROMANIZE_ONLY.get()) {
                             requestRomanizeOnly(newLyrics);
-                        } else if (Settings.LYRICS_ROMANIZE.get()) {
-                            onRomanizeClicked();
-                        }
+                } else if (Settings.LYRICS_ROMANIZE.get()) {
+                    onRomanizeClicked();
+                }
+                if (Settings.LYRICS_ENABLE_FURIGANA.get()) {
+                    triggerFuriganaGeneration(newLyrics, false);
+                }
                         if (refreshInProgress) {
                             refreshInProgress = false;
                             flashButtonLabel(refreshView,
@@ -2849,6 +2854,88 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         }
     }
 
+    private void updateFuriganaLabel() {
+        if (furiganaView != null) {
+            final boolean on = Settings.LYRICS_ENABLE_FURIGANA.get();
+            setButtonLabel(furiganaView, null, on);
+        }
+    }
+
+    private void onFuriganaClicked() {
+        try {
+            if (furiganaView == null) return;
+            boolean currentOn = Settings.LYRICS_ENABLE_FURIGANA.get();
+            boolean newOn = !currentOn;
+            Settings.LYRICS_ENABLE_FURIGANA.save(newOn);
+            updateFuriganaLabel();
+
+            Lyrics current = lyrics;
+            if (current != null) {
+                if (newOn) {
+                    triggerFuriganaGeneration(current, true);
+                } else {
+                    showLyrics(current);
+                }
+            }
+        } catch (Exception ex) {
+            Logger.printInfo(() -> "Furigana button click failed", ex);
+        }
+    }
+
+    private void triggerFuriganaGeneration(Lyrics current, boolean flashLabel) {
+        TrackInfo track = LyricsManager.getInstance().getCurrentTrack();
+        if (current == null || track == null) return;
+        if (flashLabel && furiganaView != null) {
+            setButtonLabel(furiganaView, str("morphe_music_lyrics_furigana_generating"), true);
+        }
+        app.morphe.extension.music.patches.lyrics.derive.LyricsFuriganaGenerator.generate(
+                track, current, (enriched, fromAi, model) -> {
+                    if (lyrics == current && enriched != null) {
+                        showLyrics(enriched);
+                    }
+                    updateFuriganaLabel();
+                });
+    }
+
+    private void onFuriganaLongPressed() {
+        try {
+            Context context = getContext();
+            Pair<Dialog, LinearLayout> dialogPair = CustomDialog.create(
+                    context,
+                    str("morphe_music_lyrics_furigana_provider_title"),
+                    null,
+                    null,
+                    null,
+                    null,
+                    () -> {},
+                    "Cancel",
+                    null,
+                    false
+            );
+            Dialog dialog = dialogPair.first;
+            LinearLayout layout = dialogPair.second;
+
+            final String currentStyle = Settings.LYRICS_FURIGANA_STYLE.get();
+            final boolean isKata = "KATAKANA".equalsIgnoreCase(currentStyle);
+            TextView styleItem = new TextView(context);
+            styleItem.setText(str("morphe_music_lyrics_furigana_style_title") + ": " + (isKata ? "Katakana" : "Hiragana"));
+            styleItem.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            styleItem.setPadding(0, Dim.dp12, 0, Dim.dp12);
+            styleItem.setOnClickListener(v -> {
+                String next = isKata ? "HIRAGANA" : "KATAKANA";
+                Settings.LYRICS_FURIGANA_STYLE.save(next);
+                dialog.dismiss();
+                if (Settings.LYRICS_ENABLE_FURIGANA.get() && lyrics != null) {
+                    triggerFuriganaGeneration(lyrics, true);
+                }
+            });
+            layout.addView(styleItem);
+
+            dialog.show();
+        } catch (Exception ex) {
+            Logger.printInfo(() -> "Furigana long press failed", ex);
+        }
+    }
     private void onRefreshClicked() {
         if (refreshView == null) {
             return;
@@ -4438,6 +4525,15 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
                 },
                 true);
 
+        furiganaView = createToolbarButton(buttonRow, Settings.LYRICS_SHOW_FURIGANA_BUTTON.get(),
+                APP_FURIGANA_ICON,
+                view -> onFuriganaClicked(),
+                view -> {
+                    onFuriganaLongPressed();
+                    return true;
+                },
+                true);
+
         refreshView = createToolbarButton(buttonRow, Settings.LYRICS_SHOW_REFRESH_BUTTON.get(),
                 REFRESH_ICON,
                 view -> onRefreshClicked(),
@@ -4461,6 +4557,7 @@ public final class LyricsPanelView extends FrameLayout implements LyricsManager.
         createToolbarButtons();
         updateTranslateLabel();
         updateRomanizeLabel();
+        updateFuriganaLabel();
         updateRefreshLabel();
         if (transcribePromptView.getVisibility() == VISIBLE) {
             showOnlyRefreshButton();

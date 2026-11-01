@@ -67,6 +67,11 @@ public record Lyrics(List<LyricsLine> lines, String providerName, boolean synced
         translations = (translations == null) ? null : unmodifiableTranslations(translations);
         romanizations = (romanizations == null) ? null : unmodifiableTranslations(romanizations);
     }
+    public Lyrics withLines(List<LyricsLine> newLines) {
+        return new Lyrics(newLines, providerName(), synced(), romanization(),
+                translations(), romanizations(), songwriters(), rawFormat(), formatType(),
+                sourceUrl(), about());
+    }
 
     public static List<ScoredLyrics> sortScoredByScore(List<ScoredLyrics> scored) {
         scored.sort((a, b) -> b.score - a.score);

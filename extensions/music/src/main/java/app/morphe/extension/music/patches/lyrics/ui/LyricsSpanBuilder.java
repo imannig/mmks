@@ -353,15 +353,19 @@ final class LyricsSpanBuilder {
             return null;
         }
         String cleanMain = stripBidiControls(mainText).trim();
-        if (cleanMain.isEmpty() || ScriptDetector.containsRtl(cleanMain)
-                || (ScriptDetector.detect(cleanMain) == ScriptDetector.Script.OTHER
-                && !ScriptDetector.containsCjk(cleanMain))
-                || LyricsRomanizer.isPurelyLatinScript(cleanMain)) {
+        if (!lineHasRuby) {
+            if (cleanMain.isEmpty() || ScriptDetector.containsRtl(cleanMain)
+                    || (ScriptDetector.detect(cleanMain) == ScriptDetector.Script.OTHER
+                    && !ScriptDetector.containsCjk(cleanMain))
+                    || LyricsRomanizer.isPurelyLatinScript(cleanMain)) {
+                return null;
+            }
+        } else if (cleanMain.isEmpty() || ScriptDetector.containsRtl(cleanMain)) {
             return null;
         }
 
         String wholeRoman = lineRomanizationAt(line, index, romanizedLines);
-        if (wholeRoman != null && stripBidiControls(wholeRoman).trim().equalsIgnoreCase(cleanMain)) {
+        if (!lineHasRuby && wholeRoman != null && stripBidiControls(wholeRoman).trim().equalsIgnoreCase(cleanMain)) {
             return null;
         }
 
@@ -381,13 +385,13 @@ final class LyricsSpanBuilder {
         boolean[] romTrailingSpaces = new boolean[n];
         boolean populated = false;
 
-        // A provider that reads every word itself has already said which reading goes where.
+        final boolean allowTransliteration = Settings.LYRICS_ALLOW_TRANSLITERATION.get();
         boolean hasNativeTimingRomaji = true;
         boolean anyNativeNonEmpty = false;
         for (int i = 0; i < n; i++) {
             String tr = timings.get(i).romaji();
             if (!isLatinWord[i]) {
-                if (tr == null || tr.trim().isEmpty() || ScriptDetector.containsCjk(tr)) {
+                if (tr == null || tr.trim().isEmpty() || (!allowTransliteration && ScriptDetector.containsCjk(tr))) {
                     hasNativeTimingRomaji = false;
                     break;
                 }
@@ -418,7 +422,7 @@ final class LyricsSpanBuilder {
                     StringBuilder sb = new StringBuilder();
                     for (Word rw : rWords) {
                         String r = rw.romaji();
-                        if (r != null && !r.trim().isEmpty() && !ScriptDetector.containsCjk(r)) {
+                        if (r != null && !r.trim().isEmpty() && (allowTransliteration || !ScriptDetector.containsCjk(r))) {
                             if (isSecondaryLine(line)) {
                                 r = LyricsBracketSplitter.stripAllBrackets(r);
                             }
@@ -458,7 +462,7 @@ final class LyricsSpanBuilder {
                     String chunk = i < aligned.size() && aligned.get(i) != null ? aligned.get(i) : "";
                     final boolean chunkTrailingSpace = chunk.endsWith(" ");
                     chunk = chunk.trim();
-                    if (chunk.isEmpty() || ScriptDetector.containsCjk(chunk)
+                    if (chunk.isEmpty() || (!allowTransliteration && ScriptDetector.containsCjk(chunk))
                             || chunk.equalsIgnoreCase(ownWords[i])) {
                         chunk = guides.get(i);
                     }
@@ -480,7 +484,7 @@ final class LyricsSpanBuilder {
                         romTexts[i] = "";
                     } else {
                         String g = guides.get(i);
-                        romTexts[i] = (g != null && !g.equalsIgnoreCase(ownWords[i]) && !ScriptDetector.containsCjk(g))
+                        romTexts[i] = (g != null && !g.equalsIgnoreCase(ownWords[i]) && (allowTransliteration || !ScriptDetector.containsCjk(g)))
                                 ? g.trim() : "";
                         if (!romTexts[i].isEmpty()) {
                             anyGuide = true;
@@ -505,7 +509,7 @@ final class LyricsSpanBuilder {
             String own = ownWords[i];
 
             String r = (isLatinWord[i] || romTexts[i] == null) ? "" : romTexts[i].trim();
-            if (!r.isEmpty() && (r.equalsIgnoreCase(own) || ScriptDetector.containsCjk(r))) {
+            if (!r.isEmpty() && (r.equalsIgnoreCase(own) || (!allowTransliteration && ScriptDetector.containsCjk(r)))) {
                 r = "";
             }
 

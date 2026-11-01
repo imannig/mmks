@@ -1303,7 +1303,8 @@ final class LyricsLineView extends TextView {
         final float lineExtraHeight = fontSizePx * 1.05f;
         final int bottomMargin = Math.round(fontSizePx * 0.25f);
         final int extraRomanHeightPx = hasRoman
-                ? (Math.round(lineCount * lineExtraHeight) + bottomMargin) : 0;
+                ? (Math.round(lineCount * lineExtraHeight) + bottomMargin)
+                : Math.round(Math.max(0, lineCount - 1) * lineExtraHeight);
 
         float[] charXMap = buildCharXMap(
                 formattedMainText, mainLayout, lineCount, lineIsRtl, lineStarts);
@@ -1319,7 +1320,7 @@ final class LyricsLineView extends TextView {
                 groupRomanClustersByLine(romanClusters, lineCount);
         RomanLineStatics[] romanStatics = hasRoman
                 ? buildRomanStatics(romanLines, charXMap, romanStartShift, lineBaselines, lineBottoms,
-                lineLefts, lineStarts, lineCount, fontSizePx, lineExtraHeight, totalW) : null;
+                lineLefts, lineStarts, lineCount, fontSizePx, lineExtraHeight, totalW) : new RomanLineStatics[0];
         List<RomanizedWordCluster>[] rubyLines = hasRuby
                 ? groupRomanClustersByLine(rubyClusters, lineCount) : null;
         RomanLineStatics[] rubyStatics = hasRuby

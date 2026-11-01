@@ -1252,7 +1252,7 @@ final class LyricsLineView extends TextView {
         romPaint.setLetterSpacing(0f);
         final boolean allowTransliteration = Settings.LYRICS_ALLOW_TRANSLITERATION.get();
         TextPaint rubyPaint = new TextPaint(mainPaint);
-        rubyPaint.setTextSize(fontSizePx * 0.45f);
+        rubyPaint.setTextSize(fontSizePx * 0.50f);
         LyricsViewSupport.applyLyricsBoldPaint(rubyPaint);
         rubyPaint.setLetterSpacing(0f);
 
@@ -1295,8 +1295,8 @@ final class LyricsLineView extends TextView {
         }
 
         final boolean hasRuby = !rubyClusters.isEmpty();
-        final float lineRubyExtraHeight = hasRuby ? (fontSizePx * 0.55f) : 0f;
-        final int extraRubyHeightPx = Math.round(lineCount * lineRubyExtraHeight);
+        final float lineRubyExtraHeight = hasRuby ? (fontSizePx * 0.90f + Dim.dp(6)) : 0f;
+        final int extraRubyHeightPx = Math.round(lineRubyExtraHeight);
 
         // Each lyric line makes room under it for its readings.
         final float lineExtraHeight = fontSizePx * 1.05f;
@@ -2082,9 +2082,14 @@ final class LyricsLineView extends TextView {
                         ? romanStartShift[c.wordIndex()] : 0f;
                 drawX[i] = gx - lineStart + lineLeft + shift;
             }
+            float maxClusterHeight = 0;
+            for (RomanizedWordCluster c : cs) {
+                maxClusterHeight = Math.max(maxClusterHeight, c.subLayout().getHeight());
+            }
             final float baseBaseline = li < lineBaselines.length
                     ? lineBaselines[li] : (fontSizePx * 0.8f);
-            final float y = baseBaseline + li * lineExtraHeight - fontSizePx * 1.25f;
+            final float rubyGap = Dim.dp(4);
+            final float y = baseBaseline - fontSizePx * 0.85f - rubyGap - maxClusterHeight + li * lineExtraHeight;
             lines[li] = new RomanLineStatics(cs, drawX, y);
         }
         return lines;

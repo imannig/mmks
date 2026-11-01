@@ -972,8 +972,8 @@ public final class TTMLParser {
                                 rRoma.append(rs.text());
                             }
                 final String rubyText = rRoma.length() > 0 ? rRoma.toString() : null;
-                final String romaji = rubyText != null
-                        ? (ScriptDetector.containsKana(rubyText) ? KanaRomanizer.romanize(rubyText).trim() : rubyText)
+                final String romaji = (rubyText != null && ScriptDetector.containsKana(rubyText))
+                        ? KanaRomanizer.romanize(rubyText).trim()
                         : null;
 
                 // The base is the sung text either way, only the line differs.

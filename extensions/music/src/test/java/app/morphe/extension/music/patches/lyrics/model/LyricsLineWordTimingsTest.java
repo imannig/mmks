@@ -67,4 +67,11 @@ public class LyricsLineWordTimingsTest {
         assertEquals("えぐ", word.ruby());
         assertFalse(word.endsWithSpace());
     }
+
+    @Test public void katakanaWordWithLatinRubyGlossPreservesBoth() {
+        final Word word = new Word(1000, 2000, "ノルマ", "no ru ma", false, "Normal");
+        assertEquals("ノルマ", word.text());
+        assertEquals("no ru ma", word.romaji());
+        assertEquals("Normal", word.ruby());
+    }
 }

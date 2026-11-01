@@ -279,7 +279,7 @@ final class LyricsSpanBuilder {
                               @Nullable List<LyricsLine> romanizedLines, boolean perWordRomaji,
                               @Nullable List<WordTiming> timings) {
         String orig = displayLineText(line).trim();
-        if (orig.isEmpty() || LyricsRomanizer.isPurelyLatinScript(orig)) {
+        if (orig.isEmpty() || (!hasAnyRuby(line) && LyricsRomanizer.isPurelyLatinScript(orig))) {
             return new Reading(null, null);
         }
         if (perWordRomaji) {
@@ -1522,7 +1522,7 @@ final class LyricsSpanBuilder {
             return null;
         }
         String origTrimmed = displayLineText(line).trim();
-        if (origTrimmed.isEmpty() || LyricsRomanizer.isPurelyLatinScript(origTrimmed)) {
+        if (origTrimmed.isEmpty() || (!hasAnyRuby(line) && LyricsRomanizer.isPurelyLatinScript(origTrimmed))) {
             return null;
         }
         String roma = romanizedLines.get(index).text();
@@ -1542,6 +1542,16 @@ final class LyricsSpanBuilder {
         }
         roma = roma.trim();
         return !roma.isEmpty() && !roma.equalsIgnoreCase(origTrimmed) ? roma : null;
+    }
+    private static boolean hasAnyRuby(LyricsLine line) {
+        if (line.words() != null) {
+            for (Word w : line.words()) {
+                if (w.ruby() != null && !w.ruby().trim().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Text and words come back as one, so no word is lit at an offset from another string. */

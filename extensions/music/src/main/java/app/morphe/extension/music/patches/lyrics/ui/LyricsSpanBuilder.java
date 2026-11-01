@@ -807,11 +807,24 @@ final class LyricsSpanBuilder {
                         }
                     }
                     if (origHasRuby) {
+                        final boolean sameSize = (words.size() == origWords.size());
                         List<Word> merged = new ArrayList<>(words.size());
                         for (int i = 0; i < words.size(); i++) {
                             Word w = words.get(i);
-                            String ruby = (w.ruby() != null) ? w.ruby() :
-                                    (i < origWords.size() ? origWords.get(i).ruby() : null);
+                            String ruby = w.ruby();
+                            if (ruby == null) {
+                                if (sameSize && w.text().equals(origWords.get(i).text())) {
+                                    ruby = origWords.get(i).ruby();
+                                } else {
+                                    for (Word ow : origWords) {
+                                        if (ow.ruby() != null && Math.abs(ow.startMs() - w.startMs()) <= 20
+                                                && w.text().equals(ow.text())) {
+                                            ruby = ow.ruby();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
                             merged.add(new Word(w.startMs(), w.endMs(), w.text(), w.romaji(), w.endsWithSpace(), ruby));
                         }
                         return merged;

@@ -15,6 +15,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RenderEffect;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.LinearInterpolator;
@@ -76,6 +78,9 @@ final class GapLineView extends View {
     private ValueAnimator expandAnimator;
     @Nullable
     private ValueAnimator exitAnimator;
+    private float currentBlurRadius = 0f;
+    @Nullable
+    private ValueAnimator blurAnimator;
     private final Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     GapLineView(Context context, GapInterval interval) {
@@ -87,6 +92,52 @@ final class GapLineView extends View {
         this.scrollEngine = engine;
     }
 
+    void setRenderEffectCompat(@Nullable RenderEffect effect) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            super.setRenderEffect(effect);
+        }
+    }
+
+    void animateBlur(float targetRadius, long duration) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return;
+        }
+        if (blurAnimator != null) {
+            blurAnimator.cancel();
+            blurAnimator = null;
+        }
+        if (Math.abs(currentBlurRadius - targetRadius) < 0.1f) {
+            setBlurRadius(targetRadius);
+            return;
+        }
+        ValueAnimator animator = ValueAnimator.ofFloat(currentBlurRadius, targetRadius);
+        blurAnimator = animator;
+        animator.setDuration(duration);
+        animator.setInterpolator(GAP_EASE);
+        animator.addUpdateListener(anim -> setBlurRadius((Float) anim.getAnimatedValue()));
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (blurAnimator == animation) {
+                    blurAnimator = null;
+                    setBlurRadius(targetRadius);
+                }
+            }
+        });
+        animator.start();
+    }
+
+    void setBlurRadius(float radius) {
+        this.currentBlurRadius = radius;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (radius < 0.5f) {
+                setRenderEffectCompat(null);
+            } else {
+                setRenderEffectCompat(LyricsPanelView.getCachedBlurEffect(radius));
+            }
+        }
+    }
+
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
@@ -95,6 +146,10 @@ final class GapLineView extends View {
 
     GapInterval getInterval() {
         return interval;
+    }
+
+    boolean isGapActive() {
+        return isActive || isOpen || (exitAnimator != null && exitAnimator.isRunning());
     }
 
     /**
@@ -309,6 +364,10 @@ final class GapLineView extends View {
     void destroy() {
         if (expandAnimator != null) expandAnimator.cancel();
         if (exitAnimator != null) exitAnimator.cancel();
+        if (blurAnimator != null) {
+            blurAnimator.cancel();
+            blurAnimator = null;
+        }
     }
 
     @Override

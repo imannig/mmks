@@ -28,6 +28,7 @@ import java.util.WeakHashMap;
 import app.morphe.extension.music.patches.lyrics.model.LyricsRetiming;
 import app.morphe.extension.music.patches.lyrics.ui.SpringEasing.LyricsScrollStagger;
 import app.morphe.extension.music.patches.lyrics.ui.SpringEasing.LyricsSpring;
+import app.morphe.extension.music.settings.Settings;
 
 /**
  * Scrolls the lyrics with a spring, and moves every row from where it was drawn to where the
@@ -134,27 +135,15 @@ final class LyricsScrollEngine {
         }
 
         /**
-         * Replaces any in-flight spring layers with a single continuous spring layer
+         * Replaces any in-flight spring layers with a single C0-continuous spring layer
          * starting from the element's exact current visual offset (delta + inFlight).
          */
         void replaceWithSingleSpring(float nowMs, float layoutDelta, float delayMs, LyricsSpring spring) {
             float inFlight = translation(nowMs);
             float totalDelta = layoutDelta + inFlight;
-            float effectiveDelay = delayMs;
-            if (!layers.isEmpty()) {
-                float remainingWait = 0f;
-                for (int i = 0; i < layers.size(); i++) {
-                    FlipLayer l = layers.get(i);
-                    float elapsed = nowMs - l.startMs;
-                    if (elapsed < l.waitMs) {
-                        remainingWait = Math.max(remainingWait, l.waitMs - elapsed);
-                    }
-                }
-                effectiveDelay = Math.min(delayMs, remainingWait);
-            }
             layers.clear();
             if (Math.abs(totalDelta) < MIN_FLIP_DISTANCE_PX) return;
-            add(nowMs, totalDelta, effectiveDelay, spring, 0f);
+            add(nowMs, totalDelta, delayMs, spring, 0f);
         }
     }
 
@@ -243,7 +232,8 @@ final class LyricsScrollEngine {
     }
 
     private LyricsSpring currentSpringFor(long durationMs) {
-        return SpringEasing.springFor(durationMs, lastTimeGapMs);
+        final boolean isRelax = (Settings.LYRICS_SPRING_SCROLL.get() && Settings.LYRICS_RELAX_SCROLL.get());
+        return SpringEasing.springFor(durationMs, lastTimeGapMs, isRelax);
     }
 
     private boolean isForcedScrollRunning() {
@@ -263,7 +253,7 @@ final class LyricsScrollEngine {
         callback.setProgrammaticScrolling(false);
     }
 
-    private void rememberTarget(int rowIdx, @Nullable View targetView) {
+    void rememberTarget(int rowIdx, @Nullable View targetView) {
         if (rowIdx >= 0) {
             lastTargetRowIdx = rowIdx;
             lastTargetRowRef = targetView != null ? new WeakReference<>(targetView) : null;
@@ -289,8 +279,9 @@ final class LyricsScrollEngine {
             }
         }
         int clampedSteps = Math.min(LyricsScrollStagger.MAX_STAGGER_STEPS, stepsAboveAnchor);
-        long durationMs = LyricsRetiming.calculateScrollDuration(scrollLookAheadMs);
-        float delayInc = LyricsRetiming.calculateScrollDelayIncrement(durationMs);
+        boolean isRelax = (Settings.LYRICS_SPRING_SCROLL.get() && Settings.LYRICS_RELAX_SCROLL.get());
+        long durationMs = LyricsRetiming.calculateScrollDuration(scrollLookAheadMs, isRelax);
+        float delayInc = LyricsRetiming.calculateScrollDelayIncrement(durationMs, isRelax);
         return (long) (clampedSteps * delayInc);
     }
 
@@ -459,8 +450,10 @@ final class LyricsScrollEngine {
 
     private void armStagger(List<View> validRows, boolean scrollingDown, int referenceIndex,
                             int staggerAfterIndex, long durationMs) {
+        final boolean isRelax = (Settings.LYRICS_SPRING_SCROLL.get() && Settings.LYRICS_RELAX_SCROLL.get());
         arm(new LyricsScrollStagger(scrollingDown, referenceIndex, staggerAfterIndex, durationMs,
-                LyricsRetiming.calculateScrollDelayIncrement(durationMs),
+                LyricsRetiming.calculateScrollDelayIncrement(durationMs, isRelax),
+                isRelax,
                 buildLinesBefore(validRows)));
     }
 
@@ -518,6 +511,21 @@ final class LyricsScrollEngine {
                     }
                     if (moves) {
                         programmaticScrollTo(desiredTargetY);
+                        pendingScrollSync = true;
+                        linesContainer.invalidate();
+                        scrollView.invalidate();
+                    }
+                }
+            } else {
+                int desiredTargetY = callback.computeReflowScrollTarget(null);
+                if (desiredTargetY >= 0) {
+                    float offset = desiredTargetY - scrollView.getScrollY();
+                    final boolean moves = Math.abs(offset) > MIN_FLIP_DISTANCE_PX;
+                    if (moves) {
+                        programmaticScrollTo(desiredTargetY);
+                        pendingScrollSync = true;
+                        linesContainer.invalidate();
+                        scrollView.invalidate();
                     }
                 }
             }
@@ -770,8 +778,9 @@ final class LyricsScrollEngine {
         final int staggerAfterRowIdx = scrollingDown
                 ? Math.max(refRowIdx, Math.max(targetRowIdx, resolvedEndRowIdx))
                 : refRowIdx;
+        final boolean isRelax = (Settings.LYRICS_SPRING_SCROLL.get() && Settings.LYRICS_RELAX_SCROLL.get());
         armStagger(validRows, scrollingDown, refRowIdx, staggerAfterRowIdx,
-                LyricsRetiming.calculateScrollDuration(lookAheadMs));
+                LyricsRetiming.calculateScrollDuration(lookAheadMs, isRelax));
 
         programmaticScrollTo(target);
         rememberTarget(targetRowIdx, targetView);

@@ -306,14 +306,24 @@ public class Settings extends SharedYouTubeSettings {
     public static final BooleanSetting LYRICS_ROMANIZE = new BooleanSetting("morphe_music_lyrics_romanize", FALSE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_ROMANIZE_ONLY = new BooleanSetting("morphe_music_lyrics_romanize_only", FALSE, false, parent(LYRICS_ENABLED));
     public static final BooleanSetting LYRICS_WORD_SYNC = new BooleanSetting("morphe_music_lyrics_word_sync", TRUE, false, parent(LYRICS_ENABLED));
+    /** Uses Apple Music-style soft LinearGradient wiper band instead of hard clipRect sweep. */
+    public static final BooleanSetting LYRICS_WORD_SMOOTH_SWEEP = new BooleanSetting("morphe_music_lyrics_word_smooth_sweep", TRUE, false, parentsAll(parent(LYRICS_ENABLED), parent(LYRICS_WORD_SYNC)));
+    /** Elevates synced words and syllables smoothly as they are sung. */
+    public static final BooleanSetting LYRICS_WORD_ELEVATE = new BooleanSetting("morphe_music_lyrics_word_elevate", TRUE, false, parentsAll(parent(LYRICS_ENABLED), parent(LYRICS_WORD_SYNC), parent(LYRICS_WORD_SMOOTH_SWEEP)));
+    /** Scales, pulses, and adds a soft glow to held/emphasized synced words. */
+    public static final BooleanSetting LYRICS_WORD_GLOW = new BooleanSetting("morphe_music_lyrics_word_glow", TRUE, false, parentsAll(parent(LYRICS_ENABLED), parent(LYRICS_WORD_SYNC), parent(LYRICS_WORD_SMOOTH_SWEEP)));
     /** Uses spring physics and staggered FLIP cascading for scrolling lyric lines. */
     public static final BooleanSetting LYRICS_SPRING_SCROLL = new BooleanSetting("morphe_music_lyrics_spring_scroll", TRUE, false, parent(LYRICS_ENABLED));
+    /** Slower scrolling animation and disables text resizing animation for the lyrics. */
+    public static final BooleanSetting LYRICS_RELAX_SCROLL = new BooleanSetting("morphe_music_lyrics_relax_scroll", FALSE, false, parentsAll(parent(LYRICS_ENABLED), parent(LYRICS_SPRING_SCROLL)));
     /** Shows animated three-dot instrumental gap indicators between lyric lines. */
     public static final BooleanSetting LYRICS_GAP_DOTS = new BooleanSetting("morphe_music_lyrics_gap_dots", TRUE, false, parent(LYRICS_ENABLED));
     /** Progressively dims inactive lines for a focused spotlight effect. */
     public static final BooleanSetting LYRICS_FOCUS_SPOTLIGHT = new BooleanSetting("morphe_music_lyrics_focus_spotlight", TRUE, false, parent(LYRICS_ENABLED));
-    /** Shrinks every line that is not the one being sung. */
-    public static final BooleanSetting LYRICS_LINE_SCALE = new BooleanSetting("morphe_music_lyrics_line_scale", TRUE, false, parent(LYRICS_ENABLED));
+    /** Blurs inactive lyric lines using a distance-based depth-of-field effect. */
+    public static final BooleanSetting LYRICS_BLUR_INACTIVE = new BooleanSetting("morphe_music_lyrics_blur_inactive", TRUE, false, parent(LYRICS_ENABLED));
+    /** Shrinks every line that is not the one being sung. Disabled when Relax Scrolling is active. */
+    public static final BooleanSetting LYRICS_LINE_SCALE = new BooleanSetting("morphe_music_lyrics_line_scale", TRUE, false, parentsAll(parent(LYRICS_ENABLED), parentNot(LYRICS_RELAX_SCROLL)));
     public static final BooleanSetting LYRICS_HIDE_PLAYED = new BooleanSetting("morphe_music_lyrics_hide_played", FALSE, false, parent(LYRICS_ENABLED));
     /** Master switch for separating background vocals and harmony from the lead line. */
     public static final BooleanSetting LYRICS_SPLIT_BACKGROUND = new BooleanSetting("morphe_music_lyrics_split_background", TRUE, false, parent(LYRICS_ENABLED));

@@ -49,7 +49,7 @@ final class LyricsViewSupport {
 
     /** Lines other than the active one shrink a little, on top of dimming. */
     static final float ACTIVE_LINE_SCALE = 1.0f;
-    static final float INACTIVE_LINE_SCALE = 0.95f;
+    static final float INACTIVE_LINE_SCALE = 0.93f;
     static final float INACTIVE_LINE_ALPHA = 0.35f;
     /** Every line while the lyrics are scrolled by hand, so all of them read alike. */
     static final float BROWSING_LINE_ALPHA = 0.60f;
@@ -187,7 +187,9 @@ final class LyricsViewSupport {
         };
     }
 
-    /** {@return the scale of an inactive line this many lines from the sung one, in spotlight mode} */
+    /**
+     * {@return the scale of an inactive line this many lines from the sung one, in spotlight mode}
+     */
     static float spotlightScale(int distance) {
         if (distance <= 1) return 0.97f;
         if (distance <= 3) return 0.93f;
@@ -218,7 +220,8 @@ final class LyricsViewSupport {
             view.fadeAnimator = null;
         }
         view.fadeTargetAlpha = alpha;
-        final float targetScale = alpha >= 1f ? ACTIVE_LINE_SCALE : INACTIVE_LINE_SCALE;
+        final boolean shrinkEnabled = Settings.LYRICS_LINE_SCALE.get() && !Settings.LYRICS_RELAX_SCROLL.get();
+        final float targetScale = (alpha >= 1f || !shrinkEnabled) ? ACTIVE_LINE_SCALE : INACTIVE_LINE_SCALE;
         final float startAlpha = view.lineAlpha;
         final float startScale = view.lineScale;
         if (Math.abs(startAlpha - alpha) < 0.01f && Math.abs(startScale - targetScale) < 0.005f) {

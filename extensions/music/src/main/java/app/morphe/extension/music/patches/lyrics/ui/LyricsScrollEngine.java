@@ -339,8 +339,49 @@ final class LyricsScrollEngine {
                 + currentSpringFor(stagger.durationMs).totalMs;
     }
 
+    private final List<LyricsItemFlip> rebuildSnapshotFlips = new ArrayList<>();
+
+    /**
+     * Snapshots the placed positions of all children in linesContainer before lines are rebuilt,
+     * so that the rebuilt rows can smoothly FLIP glide to their new positions.
+     */
+    void snapshotContainerFlips() {
+        rebuildSnapshotFlips.clear();
+        int childCount = linesContainer.getChildCount();
+        int scrollY = scrollView.getScrollY();
+        for (int i = 0; i < childCount; i++) {
+            View child = linesContainer.getChildAt(i);
+            if (child.getHeight() > 0) {
+                LyricsItemFlip copy = new LyricsItemFlip();
+                copy.lastTop = (float) (child.getTop() - scrollY) + child.getTranslationY();
+                copy.seenShiftSeq = shiftSeq;
+                rebuildSnapshotFlips.add(copy);
+            } else {
+                rebuildSnapshotFlips.add(null);
+            }
+        }
+    }
+
+    /**
+     * Restores placed positions to rebuilt children so they know where they were before the rebuild.
+     */
+    void restoreContainerFlips() {
+        if (rebuildSnapshotFlips.isEmpty()) return;
+        int childCount = linesContainer.getChildCount();
+        int count = Math.min(childCount, rebuildSnapshotFlips.size());
+        for (int i = 0; i < count; i++) {
+            LyricsItemFlip snap = rebuildSnapshotFlips.get(i);
+            if (snap != null) {
+                View child = linesContainer.getChildAt(i);
+                itemFlips.put(child, snap);
+            }
+        }
+        rebuildSnapshotFlips.clear();
+    }
+
     /** Stops every running scroll and glide, and leaves each row where its layout puts it. */
     void reset() {
+        rebuildSnapshotFlips.clear();
         cancelForcedScroll();
         if (frameCallbackScheduled) {
             Choreographer.getInstance().removeFrameCallback(frameCallback);
@@ -443,6 +484,9 @@ final class LyricsScrollEngine {
     private void handlePreDrawReflowAndSync() {
         if (!springScrollEnabled || scrollView.getHeight() <= 0 || linesContainer.getChildCount() <= 0)
             return;
+        if (nowMs() < suppressedUntilMs) {
+            return;
+        }
 
         int viewportH = scrollView.getHeight();
         int linesH = linesContainer.getHeight();

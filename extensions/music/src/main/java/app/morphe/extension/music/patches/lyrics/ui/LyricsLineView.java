@@ -811,6 +811,18 @@ final class LyricsLineView extends TextView {
         }
     }
 
+    void copyInnerFlipsFrom(@Nullable LyricsLineView prevView) {
+        if (prevView == null) return;
+        if (!Float.isNaN(prevView.mainVocalFlip.lastTop)) {
+            this.mainVocalFlip.lastTop = prevView.mainVocalFlip.lastTop;
+            this.mainVocalFlip.seenShiftSeq = prevView.mainVocalFlip.seenShiftSeq;
+        }
+        if (!Float.isNaN(prevView.translationFlip.lastTop)) {
+            this.translationFlip.lastTop = prevView.translationFlip.lastTop;
+            this.translationFlip.seenShiftSeq = prevView.translationFlip.seenShiftSeq;
+        }
+    }
+
     private float resolveTranslationBlockTopY() {
         SyllableRomanCache syl = syllableCache;
         if (syl != null && syl.transLayout != null) {
@@ -1098,6 +1110,9 @@ final class LyricsLineView extends TextView {
         }
         ValueAnimator animator = ValueAnimator.ofFloat(reveal(kind), target);
         animator.setDuration(LyricsPanelView.SECONDARY_REVEAL_MILLISECONDS);
+        animator.setInterpolator(entering
+                ? LyricsViewSupport.LINEAR_OUT_SLOW_IN
+                : LyricsViewSupport.FAST_OUT_SLOW_IN);
         animator.addUpdateListener(animation -> {
             setReveal(kind, (float) animation.getAnimatedValue());
             invalidate();
@@ -1579,6 +1594,13 @@ final class LyricsLineView extends TextView {
                     final float reveal = isRoma ? romaReveal : transReveal;
                     final boolean isTrans = transFirst >= 0
                             && runStart >= transFirst && runLast <= transLast;
+                    final boolean scaled = reveal < 0.99f;
+                    if (scaled) {
+                        float scale = 0.88f + 0.12f * reveal;
+                        float pivotX = isRightAligned ? layout.getWidth() : (isCentered() ? layout.getWidth() * 0.5f : 0f);
+                        canvas.save();
+                        canvas.scale(scale, scale, pivotX, layout.getLineTop(runStart));
+                    }
                     if (hasTransShift && isTrans) {
                         canvas.save();
                         canvas.translate(0f, transShift);
@@ -1586,6 +1608,9 @@ final class LyricsLineView extends TextView {
                     drawTextRun(canvas, layout, runStart, runLast,
                             Math.round((runHoldsWords ? romaAlpha : transAlpha) * reveal), 0);
                     if (hasTransShift && isTrans) {
+                        canvas.restore();
+                    }
+                    if (scaled) {
                         canvas.restore();
                     }
                 } else {
@@ -2302,6 +2327,11 @@ final class LyricsLineView extends TextView {
                 rp.setColor(romaColor);
                 canvas.save();
                 canvas.translate(originX, originY + cache.romaTopY);
+                if (romaReveal < 0.99f) {
+                    float scale = 0.88f + 0.12f * romaReveal;
+                    float pivotX = isRightAligned ? cache.romaLayout.getWidth() : (isCentered ? cache.romaLayout.getWidth() * 0.5f : 0f);
+                    canvas.scale(scale, scale, pivotX, 0f);
+                }
                 cache.romaLayout.draw(canvas);
                 canvas.restore();
             }
@@ -2316,6 +2346,11 @@ final class LyricsLineView extends TextView {
                 tp.setColor(transColor);
                 canvas.save();
                 canvas.translate(originX, originY + cache.transTopY + translationFlipOffsetY);
+                if (transReveal < 0.99f) {
+                    float scale = 0.88f + 0.12f * transReveal;
+                    float pivotX = isRightAligned ? cache.transLayout.getWidth() : (isCentered ? cache.transLayout.getWidth() * 0.5f : 0f);
+                    canvas.scale(scale, scale, pivotX, 0f);
+                }
                 cache.transLayout.draw(canvas);
                 canvas.restore();
             }
